@@ -50,40 +50,6 @@ deg.genes %>%
   xlim(c(-2,2)) +
   xlab("Average log-fold change for DKD vs. Control") +
   ggtitle("Differentially expressed genes in DKD by Cell Type", subtitle = "Unadjusted p-value < 0.05")
-#####################################################################################################
-file <- "G:/diabneph/analysis/dkd/markers/deg.PT_vs_PTVCAM1.markers.xlsx"
-deg <- read.xlsx(file, rowNames = TRUE) %>%
-    rownames_to_column(var = "gene")
-
-# intersect 
-deg.genes <- deg[deg$gene %in% genes,]
-
-deg.genes.filter <- deg.genes %>%
-  dplyr::filter(p_val_adj < 0.05)
-
-# visualize
-deg.genes %>%
-  dplyr::filter(p_val_adj < 0.05) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = gene) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label, color=celltype)) +
-  geom_point() +
-  geom_text_repel() +
-  xlim(c(-1,1)) +
-  xlab("Average log-fold change for DKD vs. Control") +
-  ggtitle("Differentially expressed genes in PT_VCAM1 vs PT", subtitle = "Adjusted p-value < 0.05") +
-  theme_bw()
-
-deg.genes %>%
-  dplyr::filter(p_val < 0.05) %>%
-  dplyr::mutate(label = gene) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label, color=celltype)) +
-  geom_point() +
-  geom_text_repel() +
-  xlim(c(-2,2)) +
-  xlab("Average log-fold change for DKD vs. Control") +
-  ggtitle("Differentially expressed genes in PT_VCAM1 vs PT", subtitle = "Unadjusted p-value < 0.05")
 
 ######################################################################################################
 # retrieve hallmark apoptosis genes
@@ -114,6 +80,61 @@ cor.exp <- cor.exp %>% dplyr::arrange(desc(value))
 cor.exp$gene <- as.factor(cor.exp$gene)
 
 ggplot(cor.exp, aes(gene, variable, fill = value)) + geom_tile()
+
+#####################################################################################################
+file <- "G:/diabneph/analysis/dkd/markers/deg.PT_vs_PTVCAM1.markers.xlsx"
+deg <- read.xlsx(file, rowNames = TRUE) %>%
+    rownames_to_column(var = "gene")
+
+# intersect 
+deg.genes <- deg[deg$gene %in% genes,]
+
+deg.genes.filter <- deg.genes %>%
+  dplyr::filter(p_val_adj < 0.05)
+
+# visualize
+deg.genes %>%
+  dplyr::filter(p_val_adj < 0.05) %>%
+  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+  dplyr::mutate(label = gene) %>%
+  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
+  geom_point() +
+  geom_text_repel() +
+  xlim(c(-1,1)) +
+  xlab("Average log-fold change for PT_VCAM1 vs PT") +
+  ggtitle("Differentially expressed genes in PT_VCAM1 vs PT", subtitle = "Adjusted p-value < 0.05") +
+  theme_bw()
+
+deg.genes %>%
+  dplyr::filter(p_val < 0.05) %>%
+  dplyr::mutate(label = gene) %>%
+  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
+  geom_point() +
+  geom_text_repel() +
+  xlim(c(-2,2)) +
+  xlab("Average log-fold change for PT_VCAM1 vs PT") +
+  ggtitle("Differentially expressed genes in PT_VCAM1 vs PT", subtitle = "Unadjusted p-value < 0.05")
+
+# intersect with hallmark apoptosis genes
+deg.genes <- deg[deg$gene %in% apoptosis_genes,]
+
+deg.genes.filter <- deg.genes %>%
+  dplyr::filter(p_val_adj < 0.05)
+
+# visualize
+deg.genes %>%
+  dplyr::filter(p_val_adj < 0.05) %>%
+  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+  dplyr::mutate(label = gene) %>%
+  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
+  geom_point() +
+  geom_text_repel() +
+  xlim(c(-1,1)) +
+  xlab("Average log-fold change for PT_VCAM1 vs PT") +
+  ggtitle("Differentially expressed genes in PT_VCAM1 vs PT", subtitle = "Adjusted p-value < 0.05") +
+  theme_bw()
+
 
 ###################################################
 file <- "G:/diabneph/analysis/dkd/markers/deg.celltype.markers.xlsx"
