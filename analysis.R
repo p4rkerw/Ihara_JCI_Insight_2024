@@ -1,5 +1,9 @@
 library(openxlsx)
 library(msigdbr)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+library(ggrepel)
 
 xl <- read.xlsx("G:/downloads/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
 genes <- xl$Gene
@@ -46,7 +50,42 @@ deg.genes %>%
   xlim(c(-2,2)) +
   xlab("Average log-fold change for DKD vs. Control") +
   ggtitle("Differentially expressed genes in DKD by Cell Type", subtitle = "Unadjusted p-value < 0.05")
+#####################################################################################################
+file <- "G:/diabneph/analysis/dkd/markers/deg.PT_vs_PTVCAM1.markers.xlsx"
+deg <- read.xlsx(file, rowNames = TRUE) %>%
+    rownames_to_column(var = "gene")
 
+# intersect 
+deg.genes <- deg[deg$gene %in% genes,]
+
+deg.genes.filter <- deg.genes %>%
+  dplyr::filter(p_val_adj < 0.05)
+
+# visualize
+deg.genes %>%
+  dplyr::filter(p_val_adj < 0.05) %>%
+  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+  dplyr::mutate(label = gene) %>%
+  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label, color=celltype)) +
+  geom_point() +
+  geom_text_repel() +
+  xlim(c(-1,1)) +
+  xlab("Average log-fold change for DKD vs. Control") +
+  ggtitle("Differentially expressed genes in PT_VCAM1 vs PT", subtitle = "Adjusted p-value < 0.05") +
+  theme_bw()
+
+deg.genes %>%
+  dplyr::filter(p_val < 0.05) %>%
+  dplyr::mutate(label = gene) %>%
+  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label, color=celltype)) +
+  geom_point() +
+  geom_text_repel() +
+  xlim(c(-2,2)) +
+  xlab("Average log-fold change for DKD vs. Control") +
+  ggtitle("Differentially expressed genes in PT_VCAM1 vs PT", subtitle = "Unadjusted p-value < 0.05")
+
+######################################################################################################
 # retrieve hallmark apoptosis genes
 hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
 apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
@@ -65,8 +104,15 @@ library(reshape2)
 genelist <- c(apoptosis_genes, genes) %>% unique()
 mat <- avexp[rownames(avexp) %in% genelist,]
 cor.exp <- cor(as.data.frame(t(mat))) %>% as.data.frame()
+
+# put the biomarkers on x-axis and the apoptosis genes on y-axis
+cor.exp <- cor.exp[rownames(cor.exp) %in% genes, colnames(cor.exp) %in% apoptosis_genes]
+
 cor.exp$gene <- rownames(cor.exp)
 cor.exp <- melt(cor.exp)
+cor.exp <- cor.exp %>% dplyr::arrange(desc(value))
+cor.exp$gene <- as.factor(cor.exp$gene)
+
 ggplot(cor.exp, aes(gene, variable, fill = value)) + geom_tile()
 
 ###################################################
