@@ -1,4 +1,5 @@
 library(openxlsx)
+library(msigdbr)
 
 xl <- read.xlsx("G:/downloads/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
 genes <- xl$Gene
@@ -45,6 +46,28 @@ deg.genes %>%
   xlim(c(-2,2)) +
   xlab("Average log-fold change for DKD vs. Control") +
   ggtitle("Differentially expressed genes in DKD by Cell Type", subtitle = "Unadjusted p-value < 0.05")
+
+# retrieve hallmark apoptosis genes
+hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
+apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
+apoptosis_genes <- apoptosis$gene_symbol
+
+# correlate expression of biomarkers with hallmark apoptosis genes
+library(Seurat)
+rnaAggr <- readRDS("G:/diabneph/analysis/dkd/rna_aggr_prep/step2_anno.rds")
+counts <- GetAssayData(rnaAggr, slot = "data")
+DefaultAssay(rnaAggr) <- "RNA"
+rnaAggr <- NormalizeData(rnaAggr)
+avexp <- AverageExpression(rnaAggr)$RNA
+
+# subset for biomarkers and hallmark apoptosis genes
+library(reshape2)
+genelist <- c(apoptosis_genes, genes) %>% unique()
+mat <- avexp[rownames(avexp) %in% genelist,]
+cor.exp <- cor(as.data.frame(t(mat))) %>% as.data.frame()
+cor.exp$gene <- rownames(cor.exp)
+cor.exp <- melt(cor.exp)
+ggplot(cor.exp, aes(gene, variable, fill = value)) + geom_tile()
 
 ###################################################
 file <- "G:/diabneph/analysis/dkd/markers/deg.celltype.markers.xlsx"
