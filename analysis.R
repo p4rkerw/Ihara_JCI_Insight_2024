@@ -60,15 +60,35 @@ apoptosis_genes <- apoptosis$gene_symbol
 # correlate expression of biomarkers with hallmark apoptosis genes
 library(Seurat)
 rnaAggr <- readRDS("G:/diabneph/analysis/dkd/rna_aggr_prep/step2_anno.rds")
-counts <- GetAssayData(rnaAggr, slot = "data")
 DefaultAssay(rnaAggr) <- "RNA"
 rnaAggr <- NormalizeData(rnaAggr)
+counts <- GetAssayData(rnaAggr, slot = "data")
+counts <- counts[rownames(counts) %in% genelist, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
+cor.df <- cor(t(as.matrix(counts))) %>% as.data.frame()
+cor.df$gene <- rownames(cor.df) 
+cor.df <- melt(cor.df)
+cor.df <- cor.df %>% dplyr::arrange(gene)
+cor.df$gene <- as.factor(cor.df$gene)
+cor.df <- dplyr::filter(cor.df, gene %in% apoptosis_genes, variable %in% genes)
+
+ggplot(cor.df, aes(gene, variable, fill = value)) +
+  geom_tile() + 
+  scale_fill_gradient(low = "black",
+                    high = "red",
+                    breaks = c(0,0.25,0.5,1),
+                    guide = "colorbar")
+
+
 avexp <- AverageExpression(rnaAggr)$RNA
 
 # subset for biomarkers and hallmark apoptosis genes
 library(reshape2)
 genelist <- c(apoptosis_genes, genes) %>% unique()
-mat <- avexp[rownames(avexp) %in% genelist,]
+mat <- avexp[rownames(avexp) %in% genelist,] %>% as.data.frame()
+# mat$gene <- rownames(mat)
+# mat <- melt(mat)
+# ggplot(mat, aes(gene, variable, fill = value)) + geom_tile()
+
 cor.exp <- cor(as.data.frame(t(mat))) %>% as.data.frame()
 
 # put the biomarkers on x-axis and the apoptosis genes on y-axis
