@@ -73,9 +73,10 @@ cor.df <- dplyr::filter(cor.df, gene %in% apoptosis_genes, variable %in% genes)
 
 ggplot(cor.df, aes(gene, variable, fill = value)) +
   geom_tile() + 
-  scale_fill_gradient(low = "black",
-                    high = "red",
-                    breaks = c(0,0.25,0.5,1),
+  scale_fill_gradient2(low = "blue",
+                      mid = "white",
+                      high = "red",
+                      midpoint = 0,
                     guide = "colorbar")
 
 
