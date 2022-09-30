@@ -281,3 +281,24 @@ deg.genes %>%
   xlim(c(-0.25,0.25)) +
   xlab("Average log-fold change for DKD vs. Control") +
   ggtitle("Differentially accessible regions in DKD by Cell Type", subtitle = "Unadjusted p-value < 0.05")
+
+
+file <- "G:/diabneph/analysis/dkd/methylation/SD19_intersection_DMR_with_DAR_and_GR_cut_and_run.xlsx"
+dmr <- read.xlsx(file, sheet = "ALL_DMR", rowNames = TRUE)  
+
+# load databases
+library(ChIPseeker)
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(annotatr)
+library(org.Hs.eg.db)
+library(plyranges)
+db <- c("hg38_genes_promoters")
+anno <- build_annotations(genome = 'hg38', annotations=db)
+dmr.gr <- as_granges(dmr)
+
+# annotate peaks
+dmr <- annotate_regions(dmr.gr, annotations=anno, ignore.strand=TRUE) %>%
+  as.data.frame()
+
+# intersect 
+dmr.genes <- dmr[dmr$annot.gene_id %in% genes,]
