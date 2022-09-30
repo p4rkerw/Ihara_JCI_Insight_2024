@@ -7,3 +7,5 @@ Things to do:
 3. Create cartoon showing transition from PT to PT_VCAM1
 
 4. Aggregate hallmark apoptosis gene transcripts and correlate with biomarkers in a single column
+
+5. Find markers comparison for PT vs PT_VCAM1 for DKD only excluding controls to confirm that changes are similar
