@@ -24,32 +24,32 @@ levels(deg$celltype) <- unique(deg$celltype)
 # intersect 
 deg.genes <- deg[deg$gene %in% genes,]
 
-deg.genes.filter <- deg.genes %>%
-  dplyr::filter(p_val_adj < 0.05)
-
-# visualize
-deg.genes %>%
-  dplyr::filter(p_val_adj < 0.05) %>%
+# create a color variable and maintain cell type levels
+deg.genes <- deg.genes %>%
+  dplyr::mutate(color = factor(ifelse(p_val_adj < 0.05, as.character(celltype), "NS"))) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = paste0(gene,"_",celltype)) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label, color=celltype)) +
-  geom_point() +
-  geom_text_repel() +
-  xlim(c(-1,1)) +
-  xlab("Average log-fold change for DKD vs. Control") +
-  ggtitle("Differentially expressed genes in DKD by Cell Type", subtitle = "Adjusted p-value < 0.05") +
-  theme_bw()
+  dplyr::mutate(label = ifelse(p_val_adj < 0.05, paste0(gene,"_",celltype), ""))
+deg.genes$color <- factor(deg.genes$color, levels = c(levels(deg.genes$celltype),"NS"))
 
-deg.genes %>%
-  dplyr::filter(p_val < 0.05) %>%
-  dplyr::mutate(label = paste0(gene,"_",celltype)) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label, color=celltype)) +
+# plot the background NS degs
+toplot1 <- deg.genes %>%
+  dplyr::filter(color != "NS")
+toplot2 <- deg.genes %>%
+  dplyr::filter(color == "NS")
+
+top_layer <- ggplot(data = toplot1, aes(x=avg_log2FC, y=-log10(p_val_adj), color=color, label=label)) + 
   geom_point() +
-  geom_text_repel() +
-  xlim(c(-2,2)) +
+  geom_text_repel(show.legend = FALSE) +
+  theme_bw() +
   xlab("Average log-fold change for DKD vs. Control") +
-  ggtitle("Differentially expressed genes in DKD by Cell Type", subtitle = "Unadjusted p-value < 0.05")
+  ggtitle("Differentially expressed biomarker genes in DKD by cell type", subtitle = "Adjusted p-value < 0.05")
+
+p1 <- top_layer + 
+  geom_point(data = toplot2, aes(x=avg_log2FC, y=-log10(p_val_adj)), color = "gray") +
+  theme(legend.title = element_blank())
+  
+p1$layers <- rev(p1$layers)
+p1
 
 ######################################################################################################
 # retrieve hallmark apoptosis genes
