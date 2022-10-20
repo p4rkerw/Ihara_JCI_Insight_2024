@@ -76,7 +76,9 @@ dar.genes %>%
   ggplot(aes(avg_log2FC, logpval, label=label, color=annot.type)) +
   geom_point() +
   geom_text_repel(show.legend = FALSE, max.overlaps=20) +
-  xlim(c(-0.25,0.25)) +
+  xlim(c(-0.2,0.25)) +
   xlab("Average log-fold change for PT_VCAM1 vs PCT") +
+  ylab("-log10(p_val_adj)") + 
   ggtitle("Differentially accessible regions near apoptosis genes in PT_VCAM1 vs PCT") +
-  theme_bw()
+  theme_bw() +
+  theme(legend.title = element_blank())
