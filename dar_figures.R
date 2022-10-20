@@ -65,17 +65,18 @@ dar.genes %>%
   theme_bw() +
   theme(legend.title = element_blank())
 
-
 # intersect 
 dar.genes <- dar[dar$gene %in% apoptosis_genes,]
 dar.genes %>%
   dplyr::filter(p_val_adj < 0.05) %>%
+  dplyr::mutate(logpval = -log10(p_val_adj)) %>%
+  dplyr::mutate(logpval = ifelse(logpval > 100, 100, logpval)) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
   dplyr::mutate(label = paste0(gene)) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
+  ggplot(aes(avg_log2FC, logpval, label=label, color=annot.type)) +
   geom_point() +
-  geom_text_repel() +
+  geom_text_repel(show.legend = FALSE, max.overlaps=20) +
   xlim(c(-0.25,0.25)) +
   xlab("Average log-fold change for PT_VCAM1 vs PCT") +
-  ggtitle("Differentially accessible regions near apoptosis genes in PT_VCAM1 vs PCT", subtitle = "Adjusted p-value < 0.05") +
+  ggtitle("Differentially accessible regions near apoptosis genes in PT_VCAM1 vs PCT") +
   theme_bw()
