@@ -17,34 +17,54 @@ apoptosis_genes <- apoptosis$gene_symbol
 genelist <- c(apoptosis_genes, genes) %>% unique()
 
 file <- "G:/diabneph/analysis/dkd/markers/dar.macs2.PCT_vs_PTVCAM1.markers.xlsx"
-dar <- read.xlsx(file, rowNames = TRUE)
+dar.gr <- read.xlsx(file, rowNames = TRUE) %>%
+  rownames_to_column(var = "peak") %>%
+  tidyr::separate(peak, sep = "-", into = c("seqnames","start","end")) %>%
+  makeGRangesFromDataFrame(keep.extra.columns = TRUE)
 
-db <- c("hg38_genes_promoters","hg38_genes_enhancers")
+db <- c("hg38_genes_promoters","hg38_enhancers_fantom","hg38_genes_exons", "hg38_genes_introns", "hg38_genes_intergenic")
+# db <- "hg38_basicgenes"
 anno <- build_annotations(genome = 'hg38', annotations=db)
-dar.gr <- as_granges(dar)
 
 # annotate peaks
-dar <- annotate_regions(dar.gr, annotations=anno, ignore.strand=TRUE) %>%
+dar.anno <- annotate_regions(dar.gr, annotations=anno, ignore.strand=TRUE) %>%
   as.data.frame()
+dar.anno <- dar.anno %>%
+  dplyr::mutate(peak = paste0(seqnames,"-",start,"-",end)) %>%
+  dplyr::distinct(peak, annot.type)
+
+# prioritize annotations using promoters > enhancers > genes > intergenic
+dar.anno$annot.type <- factor(dar.anno$annot.type, levels = db)
+dar.anno <- dar.anno %>%
+  group_by(peak) %>%
+  arrange(annot.type) %>%
+  slice(1)
+
+# join annotation to df
+dar <- as.data.frame(dar.gr) %>%
+  dplyr::mutate(peak = paste0(seqnames,"-",start,"-",end)) %>%
+  left_join(dar.anno, by = "peak")
 
 # intersect 
 dar.genes <- dar[dar$gene %in% genes,]
 
-dar.genes.filter <- dar.genes %>%
-  dplyr::filter(p_val_adj < 0.05)
-
 # visualize
 dar.genes %>%
   dplyr::filter(p_val_adj < 0.05) %>%
+  dplyr::mutate(logpval = -log10(p_val_adj)) %>%
+  dplyr::mutate(logpval = ifelse(logpval > 100, 100, logpval)) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
   dplyr::mutate(label = paste0(gene)) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
+  ggplot(aes(avg_log2FC, logpval, label=label, color=annot.type)) +
   geom_point() +
-  geom_text_repel() +
-  xlim(c(-0.25,0.25)) +
+  geom_text_repel(show.legend = FALSE, max.overlaps=20) +
+  xlim(c(-0.15,0.25)) +
   xlab("Average log-fold change for PT_VCAM1 vs PCT") +
-  ggtitle("Differentially accessible regions in PT_VCAM1 vs PCT", subtitle = "Adjusted p-value < 0.05") +
-  theme_bw()
+  ylab("-log10(p_val_adj)") + 
+  ggtitle("Differentially accessible regions in PT_VCAM1 vs PCT") +
+  theme_bw() +
+  theme(legend.title = element_blank())
+
 
 # intersect 
 dar.genes <- dar[dar$gene %in% apoptosis_genes,]
