@@ -98,7 +98,7 @@ cor.df$gene <- as.factor(cor.df$gene)
 levels(cor.df$gene) <- unique(cor.df$gene)
 
 # prepare for plots
-cor.df$variable <- "Apoptosis"
+cor.df$variable <- "Apoptosis\nIndex"
 cor.df %>% 
   ggplot(aes(variable, gene, fill = apoptosis, label = label)) +
   geom_tile() + 
