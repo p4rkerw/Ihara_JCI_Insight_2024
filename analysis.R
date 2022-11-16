@@ -98,7 +98,7 @@ cor.df$gene <- as.factor(cor.df$gene)
 levels(cor.df$gene) <- unique(cor.df$gene)
 
 # prepare for plots
-cor.df$variable <- "apoptosis"
+cor.df$variable <- "Apoptosis"
 cor.df %>% 
   ggplot(aes(variable, gene, fill = apoptosis, label = label)) +
   geom_tile() + 
@@ -110,7 +110,7 @@ cor.df %>%
   theme_bw() +
   geom_text(aes(label = label)) +
   ylim(rev(levels(cor.df$gene))) +
-  labs(fill = "Pearson \ncorrelation")
+  labs(fill = "Pearson \ncorrelation", x = "", y = "") 
 
 
 
