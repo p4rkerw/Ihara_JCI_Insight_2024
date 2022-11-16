@@ -80,6 +80,7 @@ rownames(apoptosis_totals) <- "apoptosis"
 counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
 allcounts <- rbind(counts, apoptosis_totals) %>%
 
+
 library(Hmisc)
 cor <- rcorr(t(as.matrix(allcounts)))
 
@@ -92,7 +93,9 @@ cor.df$pval <- cor$P[colnames(cor$P) == "apoptosis"]
 cor.df <- cor.df[,c("apoptosis","gene","pval")]
 cor.df <- cor.df %>% dplyr::filter(gene %in% genes)
 cor.df$label <- ifelse(cor.df$pval < 0.05, "*", "")
-
+cor.df <- dplyr::arrange(cor.df, gene)
+cor.df$gene <- as.factor(cor.df$gene)
+levels(cor.df$gene) <- unique(cor.df$gene)
 
 # prepare for plots
 cor.df$variable <- "apoptosis"
@@ -105,7 +108,11 @@ cor.df %>%
                        midpoint = 0,
                        guide = "colorbar") +
   theme_bw() +
-  geom_text(aes(label = label))
+  geom_text(aes(label = label)) +
+  ylim(rev(levels(cor.df$gene))) +
+  labs(fill = "Pearson \ncorrelation")
+
+
 
 
 
