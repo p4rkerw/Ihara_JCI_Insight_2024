@@ -90,20 +90,23 @@ cor.df$gene <- rownames(cor.df)
 # retrieve pval for correlation between gene and apoptosis counts
 cor.df$pval <- cor$P[colnames(cor$P) == "apoptosis"]
 cor.df <- cor.df[,c("apoptosis","gene","pval")]
-cor.df <- cor.df %>% dplyr::arrange(gene)
-cor.df$gene <- as.factor(cor.df$gene)
+cor.df <- cor.df %>% dplyr::filter(gene %in% genes)
+cor.df$label <- ifelse(cor.df$pval < 0.05, "*", "")
+
 
 # prepare for plots
-toplot <- melt(cor.df)
-toplot %>% 
-  dplyr::filter(variable %in% "apoptosis", gene %in% genes) %>%
-  ggplot(aes(variable, gene, fill = value)) +
-    geom_tile() + 
-    scale_fill_gradient2(low = "blue",
+cor.df$variable <- "apoptosis"
+cor.df %>% 
+  ggplot(aes(variable, gene, fill = apoptosis, label = label)) +
+  geom_tile() + 
+  scale_fill_gradient2(low = "blue",
                        mid = "white",
                        high = "red",
                        midpoint = 0,
-                       guide = "colorbar")
+                       guide = "colorbar") +
+  theme_bw() +
+  geom_text(aes(label = label))
+
 
 
 # avexp <- AverageExpression(rnaAggr)$RNA
