@@ -52,7 +52,16 @@ p1$layers <- rev(p1$layers)
 p1
 
 ######################################################################################################
-# retrieve hallmark apoptosis genes
+library(openxlsx)
+library(msigdbr)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+library(ggrepel)
+
+xl <- read.xlsx("G:/downloads/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
+genes <- xl$Gene
+
 hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
 apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
 apoptosis_genes <- apoptosis$gene_symbol
@@ -64,44 +73,60 @@ rnaAggr <- readRDS("G:/diabneph/analysis/dkd/rna_aggr_prep/step2_anno.rds")
 DefaultAssay(rnaAggr) <- "RNA"
 rnaAggr <- NormalizeData(rnaAggr)
 counts <- GetAssayData(rnaAggr, slot = "data")
-counts <- counts[rownames(counts) %in% genelist, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
-cor.df <- cor(t(as.matrix(counts))) %>% as.data.frame()
+apoptosis_counts <- counts[rownames(counts) %in% apoptosis_genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
+apoptosis_totals <- colSums(apoptosis_counts) %>% as.data.frame %>% t()
+rownames(apoptosis_totals) <- "apoptosis"
+
+counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
+allcounts <- rbind(counts, apoptosis_totals) %>%
+
+library(Hmisc)
+cor <- rcorr(t(as.matrix(allcounts)))
+
+# pearson correlation coefficients
+cor.df <- cor$r %>% as.data.frame()
 cor.df$gene <- rownames(cor.df) 
-cor.df <- melt(cor.df)
+
+# retrieve pval for correlation between gene and apoptosis counts
+cor.df$pval <- cor$P[colnames(cor$P) == "apoptosis"]
+cor.df <- cor.df[,c("apoptosis","gene","pval")]
 cor.df <- cor.df %>% dplyr::arrange(gene)
 cor.df$gene <- as.factor(cor.df$gene)
-cor.df <- dplyr::filter(cor.df, gene %in% apoptosis_genes, variable %in% genes)
 
-ggplot(cor.df, aes(gene, variable, fill = value)) +
-  geom_tile() + 
-  scale_fill_gradient2(low = "blue",
-                      mid = "white",
-                      high = "red",
-                      midpoint = 0,
-                    guide = "colorbar")
+# prepare for plots
+toplot <- melt(cor.df)
+toplot %>% 
+  dplyr::filter(variable %in% "apoptosis", gene %in% genes) %>%
+  ggplot(aes(variable, gene, fill = value)) +
+    geom_tile() + 
+    scale_fill_gradient2(low = "blue",
+                       mid = "white",
+                       high = "red",
+                       midpoint = 0,
+                       guide = "colorbar")
 
 
-avexp <- AverageExpression(rnaAggr)$RNA
+# avexp <- AverageExpression(rnaAggr)$RNA
 
-# subset for biomarkers and hallmark apoptosis genes
-library(reshape2)
-genelist <- c(apoptosis_genes, genes) %>% unique()
-mat <- avexp[rownames(avexp) %in% genelist,] %>% as.data.frame()
-# mat$gene <- rownames(mat)
-# mat <- melt(mat)
-# ggplot(mat, aes(gene, variable, fill = value)) + geom_tile()
+# # subset for biomarkers and hallmark apoptosis genes
+# library(reshape2)
+# genelist <- c(apoptosis_genes, genes) %>% unique()
+# mat <- avexp[rownames(avexp) %in% genelist,] %>% as.data.frame()
+# # mat$gene <- rownames(mat)
+# # mat <- melt(mat)
+# # ggplot(mat, aes(gene, variable, fill = value)) + geom_tile()
 
-cor.exp <- cor(as.data.frame(t(mat))) %>% as.data.frame()
+# cor.exp <- cor(as.data.frame(t(mat))) %>% as.data.frame()
 
-# put the biomarkers on x-axis and the apoptosis genes on y-axis
-cor.exp <- cor.exp[rownames(cor.exp) %in% genes, colnames(cor.exp) %in% apoptosis_genes]
+# # put the biomarkers on x-axis and the apoptosis genes on y-axis
+# cor.exp <- cor.exp[rownames(cor.exp) %in% genes, colnames(cor.exp) %in% apoptosis_genes]
 
-cor.exp$gene <- rownames(cor.exp)
-cor.exp <- melt(cor.exp)
-cor.exp <- cor.exp %>% dplyr::arrange(desc(value))
-cor.exp$gene <- as.factor(cor.exp$gene)
+# cor.exp$gene <- rownames(cor.exp)
+# cor.exp <- melt(cor.exp)
+# cor.exp <- cor.exp %>% dplyr::arrange(desc(value))
+# cor.exp$gene <- as.factor(cor.exp$gene)
 
-ggplot(cor.exp, aes(gene, variable, fill = value)) + geom_tile()
+# ggplot(cor.exp, aes(gene, variable, fill = value)) + geom_tile()
 
 #####################################################################################################
 file <- "G:/diabneph/analysis/dkd/markers/deg.PT_vs_PTVCAM1.markers.xlsx"
