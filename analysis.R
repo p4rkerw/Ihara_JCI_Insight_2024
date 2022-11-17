@@ -4,6 +4,75 @@ library(ggplot2)
 library(dplyr)
 library(tibble)
 library(ggrepel)
+library(Hmisc)
+library(reshape2)
+
+######################################################################################################
+# correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
+library(openxlsx)
+library(msigdbr)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+library(ggrepel)
+
+xl <- read.xlsx("G:/downloads/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
+genes <- xl$Gene
+
+hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
+apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
+apoptosis_genes <- apoptosis$gene_symbol
+genelist <- c(apoptosis_genes, genes) %>% unique()
+
+# correlate expression of biomarkers with hallmark apoptosis genes
+library(Seurat)
+rnaAggr <- readRDS("G:/diabneph/analysis/dkd/rna_aggr_prep/step2_anno.rds")
+DefaultAssay(rnaAggr) <- "RNA"
+rnaAggr <- NormalizeData(rnaAggr)
+counts <- GetAssayData(rnaAggr, slot = "data")
+apoptosis_counts <- counts[rownames(counts) %in% apoptosis_genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
+apoptosis_totals <- colSums(apoptosis_counts) %>% as.data.frame %>% t()
+rownames(apoptosis_totals) <- "apoptosis"
+
+counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
+allcounts <- rbind(counts, apoptosis_totals) %>%
+
+
+library(Hmisc)
+cor <- rcorr(t(as.matrix(allcounts)))
+
+# pearson correlation coefficients
+cor.df <- cor$r %>% as.data.frame()
+cor.df$gene <- rownames(cor.df) 
+
+# retrieve pval for correlation between gene and apoptosis counts
+cor.df$pval <- cor$P[colnames(cor$P) == "apoptosis"]
+cor.df <- cor.df[,c("apoptosis","gene","pval")]
+cor.df <- cor.df %>% dplyr::filter(gene %in% genes)
+cor.df$label <- ifelse(cor.df$pval < 0.05, "*", "")
+cor.df <- dplyr::arrange(cor.df, gene)
+cor.df$gene <- as.factor(cor.df$gene)
+levels(cor.df$gene) <- unique(cor.df$gene)
+
+# prepare for plots
+cor.df$variable <- "Apoptosis Index"
+p3 <- cor.df %>% 
+  ggplot(aes(variable, gene, fill = apoptosis, label = label)) +
+  geom_tile() + 
+  scale_fill_gradient2(low = "blue",
+                       mid = "white",
+                       high = "red",
+                       midpoint = 0,
+                       guide = "colorbar") +
+  theme_bw() +
+  geom_text(aes(label = label)) +
+  ylim(rev(levels(cor.df$gene))) +
+  labs(fill = "Pearson r", x = "", y = "") +
+  ggtitle("C) Correlation") +
+  theme(plot.title = element_text(size=20),
+        axis.text = element_text(colour="black", size=16),
+        legend.text=element_text(size=12),
+        legend.title=element_text(size=12))
 
 #####################################################################################################
 # deg plot PT vs PT_VCAM1
@@ -18,47 +87,47 @@ deg.genes.filter <- deg.genes %>%
   dplyr::filter(p_val_adj < 0.05)
 
 # visualize
-deg.genes %>%
+p1 <- deg.genes %>%
   dplyr::filter(p_val_adj < 0.05) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
   dplyr::mutate(label = gene) %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
   geom_point() +
-  geom_text_repel() +
+  geom_text_repel(size=7) +
+  xlab("Average log-fold change") +
+  ggtitle("A) DE Biomarker Genes") +
+  theme_bw() +
+  ylim(c(0,150)) +
   xlim(c(-1,1)) +
-  xlab("Average log-fold change for PT_VCAM1 vs PT") +
-  ggtitle("Differentially expressed genes in PT_VCAM1 vs PT", subtitle = "Adjusted p-value < 0.05") +
-  theme_bw()
-
-deg.genes %>%
-  dplyr::filter(p_val < 0.05) %>%
-  dplyr::mutate(label = gene) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
-  geom_point() +
-  geom_text_repel() +
-  xlim(c(-2,2)) +
-  xlab("Average log-fold change for PT_VCAM1 vs PT") +
-  ggtitle("Differentially expressed genes in PT_VCAM1 vs PT", subtitle = "Unadjusted p-value < 0.05")
+  theme(plot.title = element_text(size=20), axis.text = element_text(colour="black", size=12), axis.title=element_text(size=16))
+pdf("G:/scratch/p1.pdf", width=10, height=10)
+p1
+dev.off()
 
 # intersect with hallmark apoptosis genes
 deg.genes <- deg[deg$gene %in% apoptosis_genes,]
 
-deg.genes.filter <- deg.genes %>%
-  dplyr::filter(p_val_adj < 0.05)
-
 # visualize
-deg.genes %>%
+p2 <- deg.genes %>%
   dplyr::filter(p_val_adj < 0.05) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
   dplyr::mutate(label = gene) %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
   geom_point() +
-  geom_text_repel() +
+  geom_text_repel(size=7) +
+  xlab("Average log-fold change") +
+  ggtitle("B) DE Apoptosis Genes") +
+  theme_bw() +
+  ylim(c(0,150)) +
   xlim(c(-1,1)) +
-  xlab("Average log-fold change for PT_VCAM1 vs PT") +
-  ggtitle("Differentially expressed genes in PT_VCAM1 vs PT", subtitle = "Adjusted p-value < 0.05") +
-  theme_bw()
+  theme(plot.title = element_text(size=20), axis.text = element_text(colour="black", size=12), axis.title=element_text(size=16))
+pdf("G:/scratch/p2.pdf", width=10, height=10)
+p2
+dev.off()
+
+# arrange
+library(gridExtra)
+grid.arrange(p1,p2,p3, ncol=3)
 
 #################################################
 # dar PT vs PT_VCAM1 volcano
@@ -68,37 +137,35 @@ dar <- read.xlsx(file, rowNames = TRUE)
 # intersect 
 dar.genes <- dar[dar$gene %in% genes,]
 
-dar.genes.filter <- dar.genes %>%
-  dplyr::filter(p_val_adj < 0.05)
-
 # visualize
-dar.genes %>%
-  dplyr::filter(p_val_adj < 0.05) %>%
+p4 <- dar.genes %>%
+   dplyr::filter(p_val_adj < 0.05) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = paste0(gene)) %>%
+  dplyr::mutate(label = gene) %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
   geom_point() +
-  geom_text_repel() +
+  geom_text_repel(size=7) +
+  xlab("Average log-fold change") +
+  ggtitle("D) DA Biomarker Genes") +
+  theme_bw() +
   xlim(c(-0.25,0.25)) +
-  xlab("Average log-fold change for PT_VCAM1 vs PCT") +
-  ggtitle("Differentially accessible regions in PT_VCAM1 vs PCT", subtitle = "Adjusted p-value < 0.05") +
-  theme_bw()
+  theme(plot.title = element_text(size=20), axis.text = element_text(colour="black", size=12), axis.title=element_text(size=16))
 
 # intersect 
 dar.genes <- dar[dar$gene %in% apoptosis_genes,]
-dar.genes %>%
+
+p5 <- dar.genes %>%
   dplyr::filter(p_val_adj < 0.05) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = paste0(gene)) %>%
+  dplyr::mutate(label = gene) %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
   geom_point() +
-  geom_text_repel() +
+  geom_text_repel(size=7) +
+  xlab("Average log-fold change") +
+  ggtitle("E) DA Apoptosis Genes") +
+  theme_bw() +
   xlim(c(-0.25,0.25)) +
-  xlab("Average log-fold change for PT_VCAM1 vs PCT") +
-  ggtitle("Differentially accessible regions near apoptosis genes in PT_VCAM1 vs PCT", subtitle = "Adjusted p-value < 0.05") +
-  theme_bw()
-
-
+  theme(plot.title = element_text(size=20), axis.text = element_text(colour="black", size=12), axis.title=element_text(size=16))
 
 file <- "G:/diabneph/analysis/dkd/markers/dar.macs2.celltype.diab_vs_ctrl.xlsx"
 idents <- getSheetNames(file)
@@ -161,69 +228,6 @@ dmr <- annotate_regions(dmr.gr, annotations=anno, ignore.strand=TRUE) %>%
 
 # intersect 
 dmr.genes <- dmr[dmr$annot.gene_id %in% genes,]
-
-######################################################################################################
-# correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
-library(openxlsx)
-library(msigdbr)
-library(ggplot2)
-library(dplyr)
-library(tibble)
-library(ggrepel)
-
-xl <- read.xlsx("G:/downloads/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
-genes <- xl$Gene
-
-hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
-apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
-apoptosis_genes <- apoptosis$gene_symbol
-genelist <- c(apoptosis_genes, genes) %>% unique()
-
-# correlate expression of biomarkers with hallmark apoptosis genes
-library(Seurat)
-rnaAggr <- readRDS("G:/diabneph/analysis/dkd/rna_aggr_prep/step2_anno.rds")
-DefaultAssay(rnaAggr) <- "RNA"
-rnaAggr <- NormalizeData(rnaAggr)
-counts <- GetAssayData(rnaAggr, slot = "data")
-apoptosis_counts <- counts[rownames(counts) %in% apoptosis_genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
-apoptosis_totals <- colSums(apoptosis_counts) %>% as.data.frame %>% t()
-rownames(apoptosis_totals) <- "apoptosis"
-
-counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
-allcounts <- rbind(counts, apoptosis_totals) %>%
-
-
-library(Hmisc)
-cor <- rcorr(t(as.matrix(allcounts)))
-
-# pearson correlation coefficients
-cor.df <- cor$r %>% as.data.frame()
-cor.df$gene <- rownames(cor.df) 
-
-# retrieve pval for correlation between gene and apoptosis counts
-cor.df$pval <- cor$P[colnames(cor$P) == "apoptosis"]
-cor.df <- cor.df[,c("apoptosis","gene","pval")]
-cor.df <- cor.df %>% dplyr::filter(gene %in% genes)
-cor.df$label <- ifelse(cor.df$pval < 0.05, "*", "")
-cor.df <- dplyr::arrange(cor.df, gene)
-cor.df$gene <- as.factor(cor.df$gene)
-levels(cor.df$gene) <- unique(cor.df$gene)
-
-# prepare for plots
-cor.df$variable <- "Apoptosis\nIndex"
-cor.df %>% 
-  ggplot(aes(variable, gene, fill = apoptosis, label = label)) +
-  geom_tile() + 
-  scale_fill_gradient2(low = "blue",
-                       mid = "white",
-                       high = "red",
-                       midpoint = 0,
-                       guide = "colorbar") +
-  theme_bw() +
-  geom_text(aes(label = label)) +
-  ylim(rev(levels(cor.df$gene))) +
-  labs(fill = "Pearson \ncorrelation", x = "", y = "") 
-
 
 # ################################################################################
 # xl <- read.xlsx("G:/downloads/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
