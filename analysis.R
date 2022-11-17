@@ -55,7 +55,7 @@ cor.df$gene <- as.factor(cor.df$gene)
 levels(cor.df$gene) <- unique(cor.df$gene)
 
 # prepare for plots
-cor.df$variable <- "Apoptosis Index"
+cor.df$variable <- ""
 p3 <- cor.df %>% 
   ggplot(aes(variable, gene, fill = apoptosis, label = label)) +
   geom_tile() + 
@@ -69,10 +69,12 @@ p3 <- cor.df %>%
   ylim(rev(levels(cor.df$gene))) +
   labs(fill = "Pearson r", x = "", y = "") +
   ggtitle("C) Correlation") +
-  theme(plot.title = element_text(size=20),
-        axis.text = element_text(colour="black", size=16),
+  xlab("Apoptosis Index") +
+  theme(plot.title = element_text(size=20, hjust = 0),
+        axis.text = element_text(colour="black", size=8),
         legend.text=element_text(size=12),
-        legend.title=element_text(size=12))
+        legend.title=element_text(size=12),
+        axis.title=element_text(size=14))
 
 #####################################################################################################
 # deg plot PT vs PT_VCAM1
@@ -93,16 +95,15 @@ p1 <- deg.genes %>%
   dplyr::mutate(label = gene) %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
   geom_point() +
-  geom_text_repel(size=7) +
+  geom_text_repel(size=4) +
   xlab("Average log-fold change") +
   ggtitle("A) DE Biomarker Genes") +
   theme_bw() +
   ylim(c(0,150)) +
   xlim(c(-1,1)) +
-  theme(plot.title = element_text(size=20), axis.text = element_text(colour="black", size=12), axis.title=element_text(size=16))
-pdf("G:/scratch/p1.pdf", width=10, height=10)
-p1
-dev.off()
+  theme(plot.title = element_text(size=20, hjust = 0),
+        axis.text = element_text(colour="black", size=12),
+        axis.title=element_text(size=14))
 
 # intersect with hallmark apoptosis genes
 deg.genes <- deg[deg$gene %in% apoptosis_genes,]
@@ -114,20 +115,15 @@ p2 <- deg.genes %>%
   dplyr::mutate(label = gene) %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
   geom_point() +
-  geom_text_repel(size=7) +
+  geom_text_repel(size=4) +
   xlab("Average log-fold change") +
   ggtitle("B) DE Apoptosis Genes") +
   theme_bw() +
   ylim(c(0,150)) +
   xlim(c(-1,1)) +
-  theme(plot.title = element_text(size=20), axis.text = element_text(colour="black", size=12), axis.title=element_text(size=16))
-pdf("G:/scratch/p2.pdf", width=10, height=10)
-p2
-dev.off()
-
-# arrange
-library(gridExtra)
-grid.arrange(p1,p2,p3, ncol=3)
+  theme(plot.title = element_text(size=20, hjust = 0),
+        axis.text = element_text(colour="black", size=12),
+        axis.title=element_text(size=14))
 
 #################################################
 # dar PT vs PT_VCAM1 volcano
@@ -137,97 +133,123 @@ dar <- read.xlsx(file, rowNames = TRUE)
 # intersect 
 dar.genes <- dar[dar$gene %in% genes,]
 
-# visualize
-p4 <- dar.genes %>%
-   dplyr::filter(p_val_adj < 0.05) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = gene) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
-  geom_point() +
-  geom_text_repel(size=7) +
-  xlab("Average log-fold change") +
-  ggtitle("D) DA Biomarker Genes") +
-  theme_bw() +
-  xlim(c(-0.25,0.25)) +
-  theme(plot.title = element_text(size=20), axis.text = element_text(colour="black", size=12), axis.title=element_text(size=16))
-
-# intersect 
-dar.genes <- dar[dar$gene %in% apoptosis_genes,]
-
-p5 <- dar.genes %>%
-  dplyr::filter(p_val_adj < 0.05) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = gene) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
-  geom_point() +
-  geom_text_repel(size=7) +
-  xlab("Average log-fold change") +
-  ggtitle("E) DA Apoptosis Genes") +
-  theme_bw() +
-  xlim(c(-0.25,0.25)) +
-  theme(plot.title = element_text(size=20), axis.text = element_text(colour="black", size=12), axis.title=element_text(size=16))
-
-file <- "G:/diabneph/analysis/dkd/markers/dar.macs2.celltype.diab_vs_ctrl.xlsx"
-idents <- getSheetNames(file)
-dar <- lapply(idents, function(ident){
-  df <- read.xlsx(file, sheet = ident, rowNames = TRUE)  
-  df$celltype <- ident
-  return(df)
-}) %>% bind_rows()
-dar$celltype <- as.factor(dar$celltype)
-levels(dar$celltype) <- unique(dar$celltype)
-
-
-# intersect 
-dar.genes <- dar[dar$gene %in% genes,]
-
-dar.genes.filter <- dar.genes %>%
-  dplyr::filter(p_val_adj < 0.05)
-
-# visualize
-dar.genes %>%
-  dplyr::filter(p_val_adj < 0.05) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = paste0(gene,"_",celltype)) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label, color=celltype)) +
-  geom_point() +
-  geom_text_repel() +
-  xlim(c(-0.25,0.25)) +
-  xlab("Average log-fold change for DKD vs. Control") +
-  ggtitle("Differentially accessible regions in DKD by Cell Type", subtitle = "Adjusted p-value < 0.05") +
-  theme_bw()
-
-deg.genes %>%
-  dplyr::filter(p_val < 0.05) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = paste0(gene,"_",celltype)) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label, color=celltype)) +
-  geom_point() +
-  geom_text_repel() +
-  xlim(c(-0.25,0.25)) +
-  xlab("Average log-fold change for DKD vs. Control") +
-  ggtitle("Differentially accessible regions in DKD by Cell Type", subtitle = "Unadjusted p-value < 0.05")
-
-
-file <- "G:/diabneph/analysis/dkd/methylation/SD19_intersection_DMR_with_DAR_and_GR_cut_and_run.xlsx"
-dmr <- read.xlsx(file, sheet = "ALL_DMR", rowNames = TRUE)  
-
-# load databases
+library(openxlsx)
+library(msigdbr)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+library(ggrepel)
 library(ChIPseeker)
 library(TxDb.Hsapiens.UCSC.hg38.knownGene)
 library(annotatr)
 library(org.Hs.eg.db)
 library(plyranges)
-db <- c("hg38_genes_promoters")
+
+# retrieve hallmark apoptosis genes
+hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
+apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
+apoptosis_genes <- apoptosis$gene_symbol
+genelist <- c(apoptosis_genes, genes) %>% unique()
+
+file <- "G:/diabneph/analysis/dkd/markers/dar.macs2.PCT_vs_PTVCAM1.markers.xlsx"
+dar.gr <- read.xlsx(file, rowNames = TRUE) %>%
+  rownames_to_column(var = "peak") %>%
+  tidyr::separate(peak, sep = "-", into = c("seqnames","start","end")) %>%
+  makeGRangesFromDataFrame(keep.extra.columns = TRUE)
+
+db <- c("hg38_genes_promoters","hg38_enhancers_fantom","hg38_genes_exons", "hg38_genes_introns", "hg38_genes_intergenic")
+# db <- "hg38_basicgenes"
 anno <- build_annotations(genome = 'hg38', annotations=db)
-dmr.gr <- as_granges(dmr)
 
 # annotate peaks
-dmr <- annotate_regions(dmr.gr, annotations=anno, ignore.strand=TRUE) %>%
+dar.anno <- annotate_regions(dar.gr, annotations=anno, ignore.strand=TRUE) %>%
   as.data.frame()
+dar.anno <- dar.anno %>%
+  dplyr::mutate(peak = paste0(seqnames,"-",start,"-",end)) %>%
+  dplyr::distinct(peak, annot.type)
+
+# prioritize annotations using promoters > enhancers > genes > intergenic
+dar.anno$annot.type <- factor(dar.anno$annot.type, levels = db)
+dar.anno <- dar.anno %>%
+  group_by(peak) %>%
+  arrange(annot.type) %>%
+  slice(1)
+
+# join annotation to df
+dar <- as.data.frame(dar.gr) %>%
+  dplyr::mutate(peak = paste0(seqnames,"-",start,"-",end)) %>%
+  left_join(dar.anno, by = "peak")
+
+# recode the annot.type to shorten descriptions
+dar <- dar %>%
+  dplyr::mutate(annot.type = recode(annot.type,
+                hg38_enhancers_fantom = "Enhancer",
+                hg38_genes_introns = "Intron",
+                hg38_genes_promoters = "Promoter",
+                hg38_genes_intergenic = "Intergenic",
+                hg38_genes_exons = "Exon"))
 
 # intersect 
-dmr.genes <- dmr[dmr$annot.gene_id %in% genes,]
+dar.genes <- dar[dar$gene %in% genes,]
+
+# visualize
+p4 <- dar.genes %>%
+  na.omit() %>%
+  dplyr::filter(p_val_adj < 0.05) %>%
+  dplyr::mutate(logpval = -log10(p_val_adj)) %>%
+  dplyr::mutate(logpval = ifelse(logpval > 100, 100, logpval)) %>%
+  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+  dplyr::mutate(label = paste0(gene)) %>%
+  ggplot(aes(avg_log2FC, logpval, label=label, color=annot.type)) +
+  geom_point() +
+  geom_text_repel(show.legend = FALSE, max.overlaps=10) +
+  xlim(c(-0.15,0.25)) +
+  xlab("Average log-fold change") +
+  ylab("-log10(p_val_adj)") + 
+  ggtitle("D) DA Biomarker Genes") +
+  theme_bw() +
+  theme(legend.title = element_blank(),
+        plot.title = element_text(size=20, hjust = 0),
+        axis.text = element_text(colour="black", size=12),
+        axis.title=element_text(size=14),
+        legend.position="bottom",
+        legend.justification="left",
+        legend.text=element_text(size=12)) +
+  guides(color=guide_legend(nrow=2, byrow=TRUE))
+
+# intersect 
+dar.genes <- dar[dar$gene %in% apoptosis_genes,]
+p5 <- dar.genes %>%
+  na.omit() %>%
+  dplyr::filter(p_val_adj < 0.05) %>%
+  dplyr::mutate(logpval = -log10(p_val_adj)) %>%
+  dplyr::mutate(logpval = ifelse(logpval > 100, 100, logpval)) %>%
+  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+  dplyr::mutate(label = paste0(gene)) %>%
+  ggplot(aes(avg_log2FC, logpval, label=label, color=annot.type)) +
+  geom_point() +
+  geom_text_repel(show.legend = FALSE, max.overlaps=10) +
+  xlim(c(-0.15,0.25)) +
+  xlab("Average log-fold change") +
+  ylab("-log10(p_val_adj)") + 
+  ggtitle("E) DA Apoptosis Genes") +
+  theme_bw() +
+  theme(legend.title = element_blank(),
+        plot.title = element_text(size=20, hjust = 0),
+        axis.text = element_text(colour="black", size=12),
+        axis.title=element_text(size=14),
+        legend.position="bottom",
+        legend.justification="left",
+        legend.text=element_text(size=12)) +
+  guides(color=guide_legend(nrow=2, byrow=TRUE))
+
+# arrange
+library(gridExtra)
+pdf("G:/scratch/figure.pdf",width=15, height=12)
+margin = theme(plot.margin = unit(c(0.5,0.5,0.5,0.5,0.5), "cm"))
+pl <- list(p1,p2,p3,p4,p5)
+grid.arrange(grobs = lapply(pl, "+", margin), ncol=3)
+dev.off()
 
 # ################################################################################
 # xl <- read.xlsx("G:/downloads/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
