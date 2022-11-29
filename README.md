@@ -1,11 +1,9 @@
 Things to do:
 
-1. Add non-significant biomarker degs and dars to figures. Color them gray in background
-
-2. Annotate dars with location ie promoter, intronic etc to differentiate between duplicates
-
-3. Create cartoon showing transition from PT to PT_VCAM1
-
-4. Aggregate hallmark apoptosis gene transcripts and correlate with biomarkers in a single column
-
-5. Find markers comparison for PT vs PT_VCAM1 for DKD only excluding controls to confirm that changes are similar
+1. Figure - remove panels B and E for apoptosis DEGs and DARs
+2. Figure - change gene names to provided workbook names and color by group
+3. Figure - panel D keep promoter and intron only
+4. Figure - Change subtext for panel F to "TNF signaling / Apoptotic proteins in circulation"
+5. Text - update to say that PT_VCAM1 is more abundant in DKD. Rationalize focusing on this cell type / state. 
+6. Text - discuss whether infiltrating immune cells express these markers or not
+7. Figure - change y axis labels for correlation plot to designated names and groups
