@@ -15,6 +15,7 @@ library(ggplot2)
 library(dplyr)
 library(tibble)
 library(ggrepel)
+library(Hmisc)
 
 xl <- read.xlsx("G:/downloads/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
 genes <- xl$Gene
@@ -35,7 +36,7 @@ apoptosis_totals <- colSums(apoptosis_counts) %>% as.data.frame %>% t()
 rownames(apoptosis_totals) <- "apoptosis"
 
 counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
-allcounts <- rbind(counts, apoptosis_totals) %>%
+allcounts <- rbind(counts, apoptosis_totals)
 
 
 library(Hmisc)
