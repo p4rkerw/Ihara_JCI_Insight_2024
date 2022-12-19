@@ -99,7 +99,7 @@ p1 <- deg.genes %>%
 deg.genes <- deg[deg$gene %in% apoptosis_genes,]
 
 # visualize
-p2 <- deg.genes %>%
+pX <- deg.genes %>%
   dplyr::filter(p_val_adj < 0.05) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
   dplyr::mutate(label = gene) %>%
