@@ -9,14 +9,6 @@ library(reshape2)
 
 ######################################################################################################
 # correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
-library(openxlsx)
-library(msigdbr)
-library(ggplot2)
-library(dplyr)
-library(tibble)
-library(ggrepel)
-library(Hmisc)
-
 xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
 genes <- xl$Gene
 
@@ -37,9 +29,6 @@ rownames(apoptosis_totals) <- "apoptosis"
 
 counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
 allcounts <- rbind(counts, apoptosis_totals)
-
-
-library(Hmisc)
 cor <- rcorr(t(as.matrix(allcounts)))
 
 # pearson correlation coefficients
@@ -69,7 +58,7 @@ p3 <- cor.df %>%
   geom_text(aes(label = label)) +
   ylim(rev(levels(cor.df$gene))) +
   labs(fill = "Pearson r", x = "", y = "") +
-  ggtitle("C) Correlation") +
+  ggtitle("B) Correlation") +
   xlab("Apoptosis Index") +
   theme(plot.title = element_text(size=20, hjust = 0),
         axis.text = element_text(colour="black", size=8),
@@ -158,7 +147,7 @@ dar.gr <- read.xlsx(file, rowNames = TRUE) %>%
   tidyr::separate(peak, sep = "-", into = c("seqnames","start","end")) %>%
   makeGRangesFromDataFrame(keep.extra.columns = TRUE)
 
-db <- c("hg38_genes_promoters","hg38_enhancers_fantom","hg38_genes_exons", "hg38_genes_introns", "hg38_genes_intergenic")
+db <- c("hg38_genes_promoters","hg38_genes_introns")
 # db <- "hg38_basicgenes"
 anno <- build_annotations(genome = 'hg38', annotations=db)
 
@@ -207,20 +196,20 @@ p4 <- dar.genes %>%
   xlim(c(-0.15,0.25)) +
   xlab("Average log-fold change") +
   ylab("-log10(p_val_adj)") + 
-  ggtitle("D) DA Biomarker Genes") +
+  ggtitle("C) DA Biomarker Genes") +
   theme_bw() +
   theme(legend.title = element_blank(),
         plot.title = element_text(size=20, hjust = 0),
         axis.text = element_text(colour="black", size=12),
         axis.title=element_text(size=14),
         legend.position="bottom",
-        legend.justification="left",
+        legend.justification="center",
         legend.text=element_text(size=12)) +
-  guides(color=guide_legend(nrow=2, byrow=TRUE))
+  guides(color=guide_legend(nrow=1, byrow=TRUE))
 
 # intersect 
 dar.genes <- dar[dar$gene %in% apoptosis_genes,]
-p5 <- dar.genes %>%
+pX <- dar.genes %>%
   na.omit() %>%
   dplyr::filter(p_val_adj < 0.05) %>%
   dplyr::mutate(logpval = -log10(p_val_adj)) %>%
@@ -240,16 +229,16 @@ p5 <- dar.genes %>%
         axis.text = element_text(colour="black", size=12),
         axis.title=element_text(size=14),
         legend.position="bottom",
-        legend.justification="left",
+        legend.justification="center",
         legend.text=element_text(size=12)) +
-  guides(color=guide_legend(nrow=2, byrow=TRUE))
+  guides(color=guide_legend(nrow=1, byrow=TRUE))
 
 # arrange
 library(gridExtra)
 pdf("G:/scratch/figure.pdf",width=15, height=12)
 margin = theme(plot.margin = unit(c(0.5,0.5,0.5,0.5,0.5), "cm"))
-pl <- list(p1,p2,p3,p4,p5)
-grid.arrange(grobs = lapply(pl, "+", margin), ncol=3)
+pl <- list(p1,p3,p4)
+grid.arrange(grobs = lapply(pl, "+", margin), ncol=2)
 dev.off()
 
 # ################################################################################
