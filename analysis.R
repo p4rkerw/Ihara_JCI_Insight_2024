@@ -17,7 +17,7 @@ library(tibble)
 library(ggrepel)
 library(Hmisc)
 
-xl <- read.xlsx("G:/downloads/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
+xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
 genes <- xl$Gene
 
 hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
