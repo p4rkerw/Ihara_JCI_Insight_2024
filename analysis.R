@@ -203,8 +203,9 @@ p4 <- dar %>%
   na.omit() %>%
   dplyr::mutate(logpval = -log10(p_val_adj)) %>%
   dplyr::mutate(logpval = ifelse(logpval > 100, 100, logpval)) %>%
-  ggplot(aes(avg_log2FC, logpval, label=label, color=annot.type)) +
-  geom_point() +
+  ggplot(aes(avg_log2FC, logpval, label=label, shape=annot.type)) +
+  geom_point(aes(color=color)) +
+  scale_color_manual(values = c (`TNF Signaling` = "red", `Apoptotic Processes` = "blue")) + 
   geom_text_repel(show.legend = FALSE, max.overlaps=10) +
   xlim(c(-0.15,0.25)) +
   xlab("Average log-fold change") +
@@ -218,33 +219,33 @@ p4 <- dar %>%
         legend.position="bottom",
         legend.justification="center",
         legend.text=element_text(size=12)) +
-  guides(color=guide_legend(nrow=1, byrow=TRUE))
+  guides(color=guide_legend(nrow=1, ncol=2))
 
-# intersect 
-dar.genes <- dar[dar$gene %in% apoptosis_genes,]
-pX <- dar.genes %>%
-  na.omit() %>%
-  dplyr::filter(p_val_adj < 0.05) %>%
-  dplyr::mutate(logpval = -log10(p_val_adj)) %>%
-  dplyr::mutate(logpval = ifelse(logpval > 100, 100, logpval)) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = paste0(gene)) %>%
-  ggplot(aes(avg_log2FC, logpval, label=label, color=annot.type)) +
-  geom_point() +
-  geom_text_repel(show.legend = FALSE, max.overlaps=10) +
-  xlim(c(-0.15,0.25)) +
-  xlab("Average log-fold change") +
-  ylab("-log10(p_val_adj)") + 
-  ggtitle("E) DA Apoptosis Genes") +
-  theme_bw() +
-  theme(legend.title = element_blank(),
-        plot.title = element_text(size=20, hjust = 0),
-        axis.text = element_text(colour="black", size=12),
-        axis.title=element_text(size=14),
-        legend.position="bottom",
-        legend.justification="center",
-        legend.text=element_text(size=12)) +
-  guides(color=guide_legend(nrow=1, byrow=TRUE))
+# # intersect 
+# dar.genes <- dar[dar$gene %in% apoptosis_genes,]
+# pX <- dar.genes %>%
+#   na.omit() %>%
+#   dplyr::filter(p_val_adj < 0.05) %>%
+#   dplyr::mutate(logpval = -log10(p_val_adj)) %>%
+#   dplyr::mutate(logpval = ifelse(logpval > 100, 100, logpval)) %>%
+#   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+#   dplyr::mutate(label = paste0(gene)) %>%
+#   ggplot(aes(avg_log2FC, logpval, label=label, color=annot.type)) +
+#   geom_point() +
+#   geom_text_repel(show.legend = FALSE, max.overlaps=10) +
+#   xlim(c(-0.15,0.25)) +
+#   xlab("Average log-fold change") +
+#   ylab("-log10(p_val_adj)") + 
+#   ggtitle("E) DA Apoptosis Genes") +
+#   theme_bw() +
+#   theme(legend.title = element_blank(),
+#         plot.title = element_text(size=20, hjust = 0),
+#         axis.text = element_text(colour="black", size=12),
+#         axis.title=element_text(size=14),
+#         legend.position="bottom",
+#         legend.justification="center",
+#         legend.text=element_text(size=12)) +
+#   guides(color=guide_legend(nrow=1, byrow=TRUE))
 
 # arrange
 library(gridExtra)
