@@ -14,8 +14,10 @@ genes <- xl$Gene
 
 # add grouping colors
 xl2 <- read.xlsx("G:/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
-  dplyr::rename(Gene = "NAME_1")
-xl2$Colors.in.Panel.A <- as.factor(xl2$Colors.in.Panel.A)
+  dplyr::rename(Gene = "NAME_1") %>%
+  dplyr::rename(color = Colors.in.Panel.A) %>%
+  dplyr::mutate(color = ifelse(color == "Red", "TNF Signaling", "Apoptotic Processes"))
+xl2$color <- as.factor(xl2$color)
 xl <- xl %>% left_join(xl2, by = "Gene")
 
 hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
@@ -81,13 +83,13 @@ deg <- read.xlsx(file, rowNames = TRUE) %>%
     dplyr::filter(Gene %in% genes) %>%
     dplyr::filter(p_val_adj < 0.05) %>%
     dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-    dplyr::mutate(label = paste0(Name_2)) %>%
-    dplyr::rename(color = Colors.in.Panel.A)
+    dplyr::mutate(label = paste0(Name_2))
 
 # visualize
 p1 <- deg %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
   geom_point(aes(color=color)) +
+  scale_color_manual(values = c (`TNF Signaling` = "red", `Apoptotic Processes` = "blue")) + 
   geom_text_repel(size=4) +
   xlab("Average log-fold change") +
   ggtitle("A) DE Biomarker Genes") +
@@ -103,25 +105,25 @@ p1 <- deg %>%
         legend.text=element_text(size=12)) +
   guides(color=guide_legend(nrow=1, byrow=TRUE))
 
-# intersect with hallmark apoptosis genes
-deg.genes <- deg[deg$gene %in% apoptosis_genes,]
+# # intersect with hallmark apoptosis genes
+# deg.genes <- deg[deg$gene %in% apoptosis_genes,]
 
-# visualize
-pX <- deg.genes %>%
-  dplyr::filter(p_val_adj < 0.05) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = gene) %>%
-  ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
-  geom_point() +
-  geom_text_repel(size=4) +
-  xlab("Average log-fold change") +
-  ggtitle("B) DE Apoptosis Genes") +
-  theme_bw() +
-  ylim(c(0,150)) +
-  xlim(c(-1,1)) +
-  theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text = element_text(colour="black", size=12),
-        axis.title=element_text(size=14))
+# # visualize
+# pX <- deg.genes %>%
+#   dplyr::filter(p_val_adj < 0.05) %>%
+#   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+#   dplyr::mutate(label = gene) %>%
+#   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
+#   geom_point() +
+#   geom_text_repel(size=4) +
+#   xlab("Average log-fold change") +
+#   ggtitle("B) DE Apoptosis Genes") +
+#   theme_bw() +
+#   ylim(c(0,150)) +
+#   xlim(c(-1,1)) +
+#   theme(plot.title = element_text(size=20, hjust = 0),
+#         axis.text = element_text(colour="black", size=12),
+#         axis.title=element_text(size=14))
 
 #################################################
 # dar PT vs PT_VCAM1 volcano
