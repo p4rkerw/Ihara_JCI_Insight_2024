@@ -6,4 +6,4 @@ Things to do:
 4. XX Figure - Change subtext for panel F to "TNF signaling / Apoptotic proteins in circulation"
 5. Text - update to say that PT_VCAM1 is more abundant in DKD. Rationalize focusing on this cell type / state. 
 6. Text - discuss whether infiltrating immune cells express these markers or not
-7. Figure - change y axis labels for correlation plot to designated names and groups
+7. XX Figure - change y axis labels for correlation plot to designated names and groups
