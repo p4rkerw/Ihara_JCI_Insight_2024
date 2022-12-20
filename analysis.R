@@ -249,7 +249,7 @@ p4 <- dar %>%
 
 # arrange
 library(gridExtra)
-pdf("G:/scratch/figure.pdf",width=15, height=12)
+pdf("G:/krolewski/figure.pdf",width=15, height=12)
 margin = theme(plot.margin = unit(c(0.5,0.5,0.5,0.5,0.5), "cm"))
 pl <- list(p1,p3,p4)
 grid.arrange(grobs = lapply(pl, "+", margin), ncol=2)
