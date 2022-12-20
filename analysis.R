@@ -12,6 +12,12 @@ library(reshape2)
 xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
 genes <- xl$Gene
 
+# add grouping colors
+xl2 <- read.xlsx("G:/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
+  dplyr::rename(Gene = "NAME_1")
+xl2$Colors.in.Panel.A <- as.factor(xl2$Colors.in.Panel.A)
+xl <- xl %>% left_join(xl2, by = "Gene")
+
 hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
 apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
 apoptosis_genes <- apoptosis$gene_symbol
@@ -70,21 +76,18 @@ p3 <- cor.df %>%
 # deg plot PT vs PT_VCAM1
 file <- "G:/diabneph/analysis/dkd/markers/deg.PT_vs_PTVCAM1.markers.xlsx"
 deg <- read.xlsx(file, rowNames = TRUE) %>%
-    rownames_to_column(var = "gene")
-
-# intersect 
-deg.genes <- deg[deg$gene %in% genes,]
-
-deg.genes.filter <- deg.genes %>%
-  dplyr::filter(p_val_adj < 0.05)
+    rownames_to_column(var = "Gene") %>%
+    left_join(xl, by = "Gene") %>%
+    dplyr::filter(Gene %in% genes) %>%
+    dplyr::filter(p_val_adj < 0.05) %>%
+    dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+    dplyr::mutate(label = paste0(Name_2)) %>%
+    dplyr::rename(color = Colors.in.Panel.A)
 
 # visualize
-p1 <- deg.genes %>%
-  dplyr::filter(p_val_adj < 0.05) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = gene) %>%
+p1 <- deg %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
-  geom_point() +
+  geom_point(aes(color=color)) +
   geom_text_repel(size=4) +
   xlab("Average log-fold change") +
   ggtitle("A) DE Biomarker Genes") +
@@ -93,7 +96,12 @@ p1 <- deg.genes %>%
   xlim(c(-1,1)) +
   theme(plot.title = element_text(size=20, hjust = 0),
         axis.text = element_text(colour="black", size=12),
-        axis.title=element_text(size=14))
+        axis.title=element_text(size=14),
+        legend.title = element_blank(),
+        legend.position="bottom",
+        legend.justification="center",
+        legend.text=element_text(size=12)) +
+  guides(color=guide_legend(nrow=1, byrow=TRUE))
 
 # intersect with hallmark apoptosis genes
 deg.genes <- deg[deg$gene %in% apoptosis_genes,]
