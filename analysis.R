@@ -16,7 +16,8 @@ genes <- xl$Gene
 xl2 <- read.xlsx("G:/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
   dplyr::rename(Gene = "NAME_1") %>%
   dplyr::rename(color = Colors.in.Panel.A) %>%
-  dplyr::mutate(color = ifelse(color == "Red", "TNF Signaling", "Apoptotic Processes"))
+  dplyr::mutate(color = ifelse(color == "Red", "TNF Signaling", "Apoptotic Processes")) %>%
+  dplyr::select(Gene, Name_2, color)
 xl2$color <- as.factor(xl2$color)
 xl <- xl %>% left_join(xl2, by = "Gene")
 
@@ -46,16 +47,25 @@ cor.df$gene <- rownames(cor.df)
 # retrieve pval for correlation between gene and apoptosis counts
 cor.df$pval <- cor$P[colnames(cor$P) == "apoptosis"]
 cor.df <- cor.df[,c("apoptosis","gene","pval")]
-cor.df <- cor.df %>% dplyr::filter(gene %in% genes)
+
+# join with group labels
+cor.df <- cor.df %>% 
+  dplyr::filter(gene %in% genes)  %>%
+  dplyr::rename(Gene = gene) %>%
+  left_join(xl, by = "Gene")
 cor.df$label <- ifelse(cor.df$pval < 0.05, "*", "")
-cor.df <- dplyr::arrange(cor.df, gene)
-cor.df$gene <- as.factor(cor.df$gene)
-levels(cor.df$gene) <- unique(cor.df$gene)
+cor.df <- dplyr::arrange(cor.df, color, Gene)
+cor.df$Gene <- as.factor(cor.df$Gene)
+# levels(cor.df$Gene) <- unique(cor.df$Gene)
+cor.df$color <- as.factor(cor.df$color)
+
+# Conditional statement to be used in plot
+con <- ifelse(cor.df$color == "Apoptotic Processes", 'red', 'blue')
 
 # prepare for plots
 cor.df$variable <- ""
 p3 <- cor.df %>% 
-  ggplot(aes(variable, gene, fill = apoptosis, label = label)) +
+  ggplot(aes(variable, Gene, fill = apoptosis, label = label)) +
   geom_tile() + 
   scale_fill_gradient2(low = "blue",
                        mid = "white",
@@ -64,12 +74,12 @@ p3 <- cor.df %>%
                        guide = "colorbar") +
   theme_bw() +
   geom_text(aes(label = label)) +
-  ylim(rev(levels(cor.df$gene))) +
+  ylim(rev(levels(cor.df$Gene))) +
   labs(fill = "Pearson r", x = "", y = "") +
   ggtitle("B) Correlation") +
   xlab("Apoptosis Index") +
   theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text = element_text(colour="black", size=8),
+        axis.text.y = element_text(color=con, size=8),
         legend.text=element_text(size=12),
         legend.title=element_text(size=12),
         axis.title=element_text(size=14))
