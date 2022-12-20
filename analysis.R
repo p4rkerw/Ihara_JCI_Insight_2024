@@ -190,16 +190,19 @@ dar <- dar %>%
                 hg38_genes_exons = "Exon"))
 
 # intersect 
-dar.genes <- dar[dar$gene %in% genes,]
+dar <- dar %>% 
+  dplyr::filter(gene %in% genes) %>%
+  dplyr::rename(Gene = gene) %>%
+  left_join(xl, by = "Gene") %>%
+  dplyr::filter(p_val_adj < 0.05) %>%
+  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+  dplyr::mutate(label = paste0(Name_2))
 
 # visualize
-p4 <- dar.genes %>%
+p4 <- dar %>%
   na.omit() %>%
-  dplyr::filter(p_val_adj < 0.05) %>%
   dplyr::mutate(logpval = -log10(p_val_adj)) %>%
   dplyr::mutate(logpval = ifelse(logpval > 100, 100, logpval)) %>%
-  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = paste0(gene)) %>%
   ggplot(aes(avg_log2FC, logpval, label=label, color=annot.type)) +
   geom_point() +
   geom_text_repel(show.legend = FALSE, max.overlaps=10) +
