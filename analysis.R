@@ -16,7 +16,7 @@ genes <- xl$Gene
 xl2 <- read.xlsx("G:/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
   dplyr::rename(Gene = "NAME_1") %>%
   dplyr::rename(color = Colors.in.Panel.A) %>%
-  dplyr::mutate(color = ifelse(color == "Red", "TNF Signaling", "Apoptotic Processes")) %>%
+  dplyr::mutate(color = ifelse(color == "Red", "TNFR Signaling and\nApoptotic Processes", "Other\nproteins")) %>%
   dplyr::select(Gene, Name_2, color)
 xl2$color <- as.factor(xl2$color)
 xl <- xl %>% left_join(xl2, by = "Gene")
@@ -52,20 +52,24 @@ cor.df <- cor.df[,c("apoptosis","gene","pval")]
 cor.df <- cor.df %>% 
   dplyr::filter(gene %in% genes)  %>%
   dplyr::rename(Gene = gene) %>%
-  left_join(xl, by = "Gene")
-cor.df$label <- ifelse(cor.df$pval < 0.05, "*", "")
-cor.df <- dplyr::arrange(cor.df, color, Gene)
-cor.df$Gene <- as.factor(cor.df$Gene)
-# levels(cor.df$Gene) <- unique(cor.df$Gene)
+  left_join(xl, by = "Gene") 
+
+# arrange by pval
+cor.df <- cor.df %>%
+  dplyr::arrange(pval) %>%
+  dplyr::mutate(star = ifelse(pval < 0.05, "*", "")) %>%
+  dplyr::mutate(Gene = Name_2)
+
+levels(cor.df$Gene) <- unique(cor.df$Gene)
 cor.df$color <- as.factor(cor.df$color)
 
 # Conditional statement to be used in plot
-con <- ifelse(cor.df$color == "Apoptotic Processes", 'red', 'blue')
+con <- ifelse(cor.df$color == "TNFR Signaling and\nApoptotic Processes", 'red', 'blue')
 
 # prepare for plots
 cor.df$variable <- ""
 p3 <- cor.df %>% 
-  ggplot(aes(variable, Gene, fill = apoptosis, label = label)) +
+  ggplot(aes(variable, Gene, fill = apoptosis, label = star)) +
   geom_tile() + 
   scale_fill_gradient2(low = "blue",
                        mid = "white",
@@ -73,69 +77,50 @@ p3 <- cor.df %>%
                        midpoint = 0,
                        guide = "colorbar") +
   theme_bw() +
-  geom_text(aes(label = label)) +
+  geom_text(aes(label = star)) +
   ylim(rev(levels(cor.df$Gene))) +
   labs(fill = "Pearson r", x = "", y = "") +
-  ggtitle("B) Correlation") +
+  ggtitle("B)") +
   xlab("Apoptosis Index") +
   theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text.y = element_text(color=con, size=8),
-        legend.text=element_text(size=12),
+        axis.text.y = element_text(color=rev(con), size=10),
+        legend.text=element_text(size=12, face="bold"),
         legend.title=element_text(size=12),
-        axis.title=element_text(size=14))
+        axis.title=element_text(size=14),
+        panel.border = element_rect(color="black",size=1))
 
 #####################################################################################################
 # deg plot PT vs PT_VCAM1
 file <- "G:/diabneph/analysis/dkd/markers/deg.PT_vs_PTVCAM1.markers.xlsx"
 deg <- read.xlsx(file, rowNames = TRUE) %>%
-    rownames_to_column(var = "Gene") %>%
-    left_join(xl, by = "Gene") %>%
-    dplyr::filter(Gene %in% genes) %>%
-    dplyr::filter(p_val_adj < 0.05) %>%
-    dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-    dplyr::mutate(label = paste0(Name_2))
+  rownames_to_column(var = "Gene") %>%
+  left_join(xl, by = "Gene") %>%
+  dplyr::filter(Gene %in% genes) %>%
+  dplyr::filter(p_val_adj < 0.05) %>%
+  dplyr::mutate(fold_change = 2^avg_log2FC) %>%
+  dplyr::mutate(label = paste0(Name_2))
 
 # visualize
 p1 <- deg %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
-  geom_point(aes(color=color)) +
-  scale_color_manual(values = c (`TNF Signaling` = "red", `Apoptotic Processes` = "blue")) + 
-  geom_text_repel(size=4) +
+  geom_point(aes(color=color), size=4) +
+  scale_color_manual(values = c (`TNFR Signaling and\nApoptotic Processes` = "red", `Other\nproteins` = "blue")) + 
+  geom_text_repel(show.legend = FALSE, max.overlaps=8) +
   xlab("Average log-fold change") +
-  ggtitle("A) DE Biomarker Genes") +
+  ggtitle("A)") +
   theme_bw() +
   ylim(c(0,150)) +
   xlim(c(-1,1)) +
   theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text = element_text(colour="black", size=12),
+        axis.text = element_text(colour="black", size=12, face="bold"),
         axis.title=element_text(size=14),
+        panel.border = element_rect(color="black",size=1),
         legend.title = element_blank(),
         legend.position="bottom",
         legend.justification="center",
         legend.text=element_text(size=12)) +
-  guides(color=guide_legend(nrow=1, byrow=TRUE))
+  guides(color=guide_legend(nrow=1, ncol=2, reverse = TRUE))
 
-# # intersect with hallmark apoptosis genes
-# deg.genes <- deg[deg$gene %in% apoptosis_genes,]
-
-# # visualize
-# pX <- deg.genes %>%
-#   dplyr::filter(p_val_adj < 0.05) %>%
-#   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-#   dplyr::mutate(label = gene) %>%
-#   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
-#   geom_point() +
-#   geom_text_repel(size=4) +
-#   xlab("Average log-fold change") +
-#   ggtitle("B) DE Apoptosis Genes") +
-#   theme_bw() +
-#   ylim(c(0,150)) +
-#   xlim(c(-1,1)) +
-#   theme(plot.title = element_text(size=20, hjust = 0),
-#         axis.text = element_text(colour="black", size=12),
-#         axis.title=element_text(size=14))
-
-#################################################
 # dar PT vs PT_VCAM1 volcano
 file <- "G:/diabneph/analysis/dkd/markers/dar.macs2.PCT_vs_PTVCAM1.markers.xlsx"
 dar <- read.xlsx(file, rowNames = TRUE)  
@@ -193,11 +178,11 @@ dar <- as.data.frame(dar.gr) %>%
 # recode the annot.type to shorten descriptions
 dar <- dar %>%
   dplyr::mutate(annot.type = recode(annot.type,
-                hg38_enhancers_fantom = "Enhancer",
-                hg38_genes_introns = "Intron",
-                hg38_genes_promoters = "Promoter",
-                hg38_genes_intergenic = "Intergenic",
-                hg38_genes_exons = "Exon"))
+                                    hg38_enhancers_fantom = "Enhancer",
+                                    hg38_genes_introns = "Intron",
+                                    hg38_genes_promoters = "Promoter",
+                                    hg38_genes_intergenic = "Intergenic",
+                                    hg38_genes_exons = "Exon"))
 
 # intersect 
 dar <- dar %>% 
@@ -212,144 +197,43 @@ dar <- dar %>%
 p4 <- dar %>%
   na.omit() %>%
   dplyr::mutate(logpval = -log10(p_val_adj)) %>%
-  dplyr::mutate(logpval = ifelse(logpval > 100, 100, logpval)) %>%
+  dplyr::mutate(logpval = ifelse(logpval > 150, 150, logpval)) %>%
   ggplot(aes(avg_log2FC, logpval, label=label, shape=annot.type)) +
-  geom_point(aes(color=color)) +
-  scale_color_manual(values = c (`TNF Signaling` = "red", `Apoptotic Processes` = "blue")) + 
-  geom_text_repel(show.legend = FALSE, max.overlaps=10) +
+  geom_point(aes(color=color), size=4) +
+  scale_color_manual(values = c (`TNFR Signaling and\nApoptotic Processes` = "red", `Other\nproteins` = "blue")) + 
+  geom_text_repel(show.legend = FALSE, max.overlaps=6, point.padding=0.5) +
   xlim(c(-0.15,0.25)) +
   xlab("Average log-fold change") +
-  ylab("-log10(p_val_adj)") + 
-  ggtitle("C) DA Biomarker Genes") +
+  ylab("-log10(p_val_adj)") +
+  ggtitle("C)") +
   theme_bw() +
   theme(legend.title = element_blank(),
         plot.title = element_text(size=20, hjust = 0),
-        axis.text = element_text(colour="black", size=12),
+        axis.text = element_text(colour="black", size=12, face="bold"),
         axis.title=element_text(size=14),
+        panel.border = element_rect(color="black",size=1),
         legend.position="bottom",
         legend.justification="center",
         legend.text=element_text(size=12)) +
-  guides(color=guide_legend(nrow=1, ncol=2))
+  guides(color=guide_legend(nrow=1, reverse = TRUE))
 
-# # intersect 
-# dar.genes <- dar[dar$gene %in% apoptosis_genes,]
-# pX <- dar.genes %>%
-#   na.omit() %>%
-#   dplyr::filter(p_val_adj < 0.05) %>%
-#   dplyr::mutate(logpval = -log10(p_val_adj)) %>%
-#   dplyr::mutate(logpval = ifelse(logpval > 100, 100, logpval)) %>%
-#   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-#   dplyr::mutate(label = paste0(gene)) %>%
-#   ggplot(aes(avg_log2FC, logpval, label=label, color=annot.type)) +
-#   geom_point() +
-#   geom_text_repel(show.legend = FALSE, max.overlaps=10) +
-#   xlim(c(-0.15,0.25)) +
-#   xlab("Average log-fold change") +
-#   ylab("-log10(p_val_adj)") + 
-#   ggtitle("E) DA Apoptosis Genes") +
-#   theme_bw() +
-#   theme(legend.title = element_blank(),
-#         plot.title = element_text(size=20, hjust = 0),
-#         axis.text = element_text(colour="black", size=12),
-#         axis.title=element_text(size=14),
-#         legend.position="bottom",
-#         legend.justification="center",
-#         legend.text=element_text(size=12)) +
-#   guides(color=guide_legend(nrow=1, byrow=TRUE))
+# # arrange
+# library(gridExtra)
+# pdf("G:/krolewski/figure.pdf",width=8.5, height=11)
+# margin = theme(plot.margin = unit(c(0.5,0.5,0.5,0.5,0.5), "cm"))
+# pl <- list(p1,p3,p4)
+# grid.arrange(grobs = lapply(pl, "+", margin),
+#              ncol=2,
+#              widths = c(0.9,0.7))
+# dev.off()
 
-# arrange
 library(gridExtra)
-pdf("G:/krolewski/figure.pdf",width=15, height=12)
+pdf("G:/krolewski/figure.pdf",width=8.5, height=11)
 margin = theme(plot.margin = unit(c(0.5,0.5,0.5,0.5,0.5), "cm"))
 pl <- list(p1,p3,p4)
-grid.arrange(grobs = lapply(pl, "+", margin), ncol=2)
+grid.arrange(grobs = lapply(pl, "+", margin),
+             ncol=2,
+             layout_matrix = cbind(c(1,3), c(2,2)))
 dev.off()
 
-# ################################################################################
-# xl <- read.xlsx("G:/downloads/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
-# genes <- xl$Gene
 
-# file <- "G:/diabneph/analysis/dkd/markers/deg.celltype.diab_vs_ctrl.xlsx"
-# idents <- getSheetNames(file)
-# deg <- lapply(idents, function(ident){
-#   df <- read.xlsx(file, sheet = ident, rowNames = TRUE) %>%
-#     rownames_to_column(var = "gene")
-#   df$celltype <- ident
-#   return(df)
-# }) %>% bind_rows()
-# deg$celltype <- as.factor(deg$celltype)
-# levels(deg$celltype) <- unique(deg$celltype)
-
-
-# # intersect 
-# deg.genes <- deg[deg$gene %in% genes,]
-
-# # create a color variable and maintain cell type levels
-# deg.genes <- deg.genes %>%
-#   dplyr::mutate(color = factor(ifelse(p_val_adj < 0.05, as.character(celltype), "NS"))) %>%
-#   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-#   dplyr::mutate(label = ifelse(p_val_adj < 0.05, paste0(gene,"_",celltype), ""))
-# deg.genes$color <- factor(deg.genes$color, levels = c(levels(deg.genes$celltype),"NS"))
-
-# # plot the background NS degs
-# toplot1 <- deg.genes %>%
-#   dplyr::filter(color != "NS")
-# toplot2 <- deg.genes %>%
-#   dplyr::filter(color == "NS")
-
-# top_layer <- ggplot(data = toplot1, aes(x=avg_log2FC, y=-log10(p_val_adj), color=color, label=label)) + 
-#   geom_point() +
-#   geom_text_repel(show.legend = FALSE) +
-#   theme_bw() +
-#   xlab("Average log-fold change for DKD vs. Control") +
-#   ggtitle("Differentially expressed biomarker genes in DKD by cell type", subtitle = "Adjusted p-value < 0.05")
-
-# p1 <- top_layer + 
-#   geom_point(data = toplot2, aes(x=avg_log2FC, y=-log10(p_val_adj)), color = "gray") +
-#   theme(legend.title = element_blank())
-  
-# p1$layers <- rev(p1$layers)
-# p1
-
-# ###################################################
-# file <- "G:/diabneph/analysis/dkd/markers/deg.celltype.markers.xlsx"
-# idents <- getSheetNames(file)
-# deg <- lapply(idents, function(ident){
-#   df <- read.xlsx(file, sheet = ident, rowNames = TRUE) %>%
-#     rownames_to_column(var = "gene")
-#   df$celltype <- ident
-#   return(df)
-# }) %>% bind_rows()
-# deg$celltype <- as.factor(deg$celltype)
-# levels(deg$celltype) <- unique(deg$celltype)
-
-
-# # intersect 
-# deg.genes <- deg[deg$gene %in% genes,]
-
-# deg.genes.filter <- deg.genes %>%
-#   dplyr::filter(p_val_adj < 0.05)
-
-# # visualize
-# deg.genes %>%
-#   dplyr::filter(p_val_adj < 0.05, avg_log2FC > 0) %>%
-#   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-#   dplyr::mutate(label = paste0(gene,"_",celltype)) %>%
-#   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label, color=celltype)) +
-#   geom_point() +
-#   geom_text_repel() +
-#   xlim(c(0,2)) +
-#   xlab("Average log-fold change for DKD vs. Control") +
-#   ggtitle("Cell-specific genes by Cell Type", subtitle = "Adjusted p-value < 0.05") +
-#   theme_bw()
-
-# deg.genes %>%
-#   dplyr::filter(p_val < 0.05, avg_log2FC > 0) %>%
-#   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-#   dplyr::mutate(label = paste0(gene,"_",celltype)) %>%
-#   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label, color=celltype)) +
-#   geom_point() +
-#   geom_text_repel() +
-#   xlim(c(0,2)) +
-#   xlab("Average log-fold change for DKD vs. Control") +
-#   ggtitle("Differentially expressed genes in DKD by Cell Type", subtitle = "Unadjusted p-value < 0.05")
