@@ -105,7 +105,10 @@ p1 <- deg %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
   geom_point(aes(color=color), position="jitter", size=4, alpha=0.5) +
   scale_color_manual(values = c (`TNFR Signaling and\nApoptotic Processes` = "red", `Other\nproteins` = "blue")) + 
-  geom_text_repel(show.legend = FALSE, max.overlaps=nrow(deg), position="jitter") +
+  geom_text_repel(show.legend = FALSE,
+                  force=10,
+                  max.overlaps = nrow(deg),
+                  point.size = NA) +
   xlab("Average log-fold change") +
   ggtitle("A)") +
   theme_bw() +
@@ -201,7 +204,10 @@ p4 <- dar %>%
   ggplot(aes(avg_log2FC, logpval, label=label, shape=annot.type)) +
   geom_point(aes(color=color), position="jitter", size=4, alpha=0.5) +
   scale_color_manual(values = c (`TNFR Signaling and\nApoptotic Processes` = "red", `Other\nproteins` = "blue")) + 
-  geom_text_repel(show.legend = FALSE, force=10, max.overlaps = nrow(dar)) +
+  geom_text_repel(show.legend = FALSE,
+                  force=10,
+                  max.overlaps = nrow(dar),
+                  point.size = NA) +
   xlim(c(-0.15,0.25)) +
   xlab("Average log-fold change") +
   ylab("-log10(p_val_adj)") +
@@ -235,5 +241,6 @@ grid.arrange(grobs = lapply(pl, "+", margin),
              ncol=2,
              layout_matrix = cbind(c(1,3), c(2,2)))
 dev.off()
+
 
 
