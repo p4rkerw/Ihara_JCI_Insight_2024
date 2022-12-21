@@ -56,7 +56,7 @@ cor.df <- cor.df %>%
 
 # arrange by pval
 cor.df <- cor.df %>%
-  dplyr::arrange(pval) %>%
+  dplyr::arrange(desc(apoptosis)) %>%
   dplyr::mutate(star = ifelse(pval < 0.05, "*", "")) %>%
   dplyr::mutate(Gene = Name_2)
 
@@ -103,9 +103,9 @@ deg <- read.xlsx(file, rowNames = TRUE) %>%
 # visualize
 p1 <- deg %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
-  geom_point(aes(color=color), size=4) +
+  geom_point(aes(color=color), position="jitter", size=4, alpha=0.5) +
   scale_color_manual(values = c (`TNFR Signaling and\nApoptotic Processes` = "red", `Other\nproteins` = "blue")) + 
-  geom_text_repel(show.legend = FALSE, max.overlaps=8) +
+  geom_text_repel(show.legend = FALSE, max.overlaps=nrow(deg), position="jitter") +
   xlab("Average log-fold change") +
   ggtitle("A)") +
   theme_bw() +
@@ -199,9 +199,9 @@ p4 <- dar %>%
   dplyr::mutate(logpval = -log10(p_val_adj)) %>%
   dplyr::mutate(logpval = ifelse(logpval > 150, 150, logpval)) %>%
   ggplot(aes(avg_log2FC, logpval, label=label, shape=annot.type)) +
-  geom_point(aes(color=color), size=4) +
+  geom_point(aes(color=color), position="jitter", size=4, alpha=0.5) +
   scale_color_manual(values = c (`TNFR Signaling and\nApoptotic Processes` = "red", `Other\nproteins` = "blue")) + 
-  geom_text_repel(show.legend = FALSE, max.overlaps=6, point.padding=0.5) +
+  geom_text_repel(show.legend = FALSE, force=10, max.overlaps = nrow(dar)) +
   xlim(c(-0.15,0.25)) +
   xlab("Average log-fold change") +
   ylab("-log10(p_val_adj)") +
@@ -228,7 +228,7 @@ p4 <- dar %>%
 # dev.off()
 
 library(gridExtra)
-pdf("G:/krolewski/figure.pdf",width=8.5, height=11)
+pdf("G:/krolewski/figure.pdf",width=8.5, height=8.5)
 margin = theme(plot.margin = unit(c(0.5,0.5,0.5,0.5,0.5), "cm"))
 pl <- list(p1,p3,p4)
 grid.arrange(grobs = lapply(pl, "+", margin),
