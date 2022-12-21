@@ -103,7 +103,7 @@ deg <- read.xlsx(file, rowNames = TRUE) %>%
 # visualize
 p1 <- deg %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
-  geom_point(aes(color=color), position="jitter", size=4, alpha=0.5) +
+  geom_point(aes(color=color), position="dodge", size=4, alpha=0.5) +
   scale_color_manual(values = c (`TNFR Signaling and\nApoptotic Processes` = "red", `Other\nproteins` = "blue")) + 
   geom_text_repel(show.legend = FALSE,
                   force=10,
@@ -202,12 +202,11 @@ p4 <- dar %>%
   dplyr::mutate(logpval = -log10(p_val_adj)) %>%
   dplyr::mutate(logpval = ifelse(logpval > 150, 150, logpval)) %>%
   ggplot(aes(avg_log2FC, logpval, label=label, shape=annot.type)) +
-  geom_point(aes(color=color), position="jitter", size=4, alpha=0.5) +
+  geom_point(aes(color=color), position="dodge", size=4, alpha=0.5) +
   scale_color_manual(values = c (`TNFR Signaling and\nApoptotic Processes` = "red", `Other\nproteins` = "blue")) + 
   geom_text_repel(show.legend = FALSE,
                   force=10,
-                  max.overlaps = nrow(dar),
-                  point.size = NA) +
+                  max.overlaps = nrow(dar)) +
   xlim(c(-0.15,0.25)) +
   xlab("Average log-fold change") +
   ylab("-log10(p_val_adj)") +
@@ -235,12 +234,10 @@ p4 <- dar %>%
 
 library(gridExtra)
 pdf("G:/krolewski/figure.pdf",width=8.5, height=8.5)
-margin = theme(plot.margin = unit(c(0.5,0.5,0.5,0.5,0.5), "cm"))
+margin = theme(plot.margin = unit(c(0.25,0.25,0.25,0.25,0.25), "cm"))
 pl <- list(p1,p3,p4)
 grid.arrange(grobs = lapply(pl, "+", margin),
              ncol=2,
-             layout_matrix = cbind(c(1,3), c(2,2)))
+             layout_matrix = cbind(c(1,3), c(2,2)),
+             widths = c(2,1))
 dev.off()
-
-
-
