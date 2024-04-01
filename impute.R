@@ -8,3 +8,9 @@
 # -v $SCRATCH1:$SCRATCH1 \
 # -e SCRATCH1="/mnt/g/scratch" \
 # p4rkerw/sctools:R4.1.0
+
+library(Rmagic)
+library(Seurat)
+rna <- readRDS("project/analysis/dkd/rna_aggr_prep/step2_anno.rds")
+DefaultAssay(rna) <- "RNA"
+magic <- magic(rna, solver="approximate")
