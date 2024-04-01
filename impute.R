@@ -15,4 +15,4 @@ rna <- readRDS("project/analysis/dkd/rna_aggr_prep/step2_anno.rds")
 DefaultAssay(rna) <- "RNA"
 magic <- magic(rna, solver="approximate")
 
-saveRDS(magic, "project/analysis/dkd/rna_aggr_prep/step2_magic.rds")
+saveRDS(magic, "project/analysis/dkd/rna_aggr_prep/step2_magic.rds", compress=FALSE)
