@@ -1,11 +1,38 @@
- 
+#!/usr/bin/env Rscript
+# to run locally:
+SCRATCH1=/mnt/g/scratch
+docker run -it --rm \
+--workdir $HOME \
+-v /mnt/g:$HOME/project \
+-v $HOME:$HOME \
+-v $SCRATCH1:$SCRATCH1 \
+-e SCRATCH1="/mnt/g/scratch" \
+p4rkerw/allele_mod:latest R
+
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(Matrix)
+library(future.apply)
+library(tibble)
+library(here)
+library(reshape2)
+library(broom.mixed)
+library(openxlsx)
+library(EnsDb.Hsapiens.v86)
+library(Seurat)
+
+library(lmerTest)
+library(msigdbr)
+
 
 # correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
-xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
+xl <- read.xlsx("project/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
 genes <- xl$Gene
 
 # add grouping colors
-xl2 <- read.xlsx("G:/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
+xl2 <- read.xlsx("project/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
   dplyr::rename(Gene = "NAME_1") %>%
   dplyr::rename(color = Colors.in.Panel.A) %>%
   dplyr::mutate(color = ifelse(color == "Red", "TNFR Signaling and\nApoptotic Processes", "Other\nproteins")) %>%
@@ -18,15 +45,14 @@ apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
 apoptosis_genes <- apoptosis$gene_symbol
 genelist <- c(apoptosis_genes, genes) %>% unique()
 
-library(Seurat)
-rnaAggr <- readRDS("G:/diabneph/analysis/dkd/rna_aggr_prep/step2_magic.rds")
+rnaAggr <- readRDS("project/diabneph/analysis/dkd/rna_aggr_prep/step2_magic.rds")
 DefaultAssay(rnaAggr) <- "MAGIC_RNA"
 counts <- GetAssayData(rnaAggr, slot = "data")
 apoptosis_counts <- counts[rownames(counts) %in% apoptosis_genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
 apoptosis_totals <- colSums(apoptosis_counts) %>% as.data.frame %>% t()
 rownames(apoptosis_totals) <- "apoptosis"
 
-counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
+counts <- counts[, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
 
 meta <- data.frame(barcode = rownames(rnaAggr@meta.data), nCount_RNA = rnaAggr$nCount_RNA, sample=rnaAggr$orig.ident)
 
@@ -34,7 +60,7 @@ apoptosis.df <- t(apoptosis_totals) %>%
   as.data.frame() %>%
   rownames_to_column(var = "barcode")
 
-results.ls <- lapply(rownames(counts), function(gene) {
+results.ls <- mclapply(rownames(counts), function(gene) {
 	  print(gene)
 	  exp_mat <- counts[gene,] %>% as.data.frame()
 	  colnames(exp_mat) <- "imprna"
@@ -72,18 +98,33 @@ results.ls <- lapply(rownames(counts), function(gene) {
 		  
 	    res <- cbind(gene=gene, res)
 	    }
-   })
+   }, mc.cores=16)
 results.df <- bind_rows(results.ls) %>% as.data.frame()
 
-write.csv(results.df, file="G:/diabneph/analysis/dkd/rna_aggr_prep/lmer_results.csv")
+write.csv(results.df, file="project/diabneph/analysis/dkd/rna_aggr_prep/lmer_results.csv")
 
+results.df <- results.df %>%
+  dplyr::mutate(label = ifelse(gene %in% xl$Gene, gene, ""))
 
-results.df %>%
+p1 <- results.df %>%
+  ggplot(aes(x=estimate_exp, y=-log10(p.value_exp))) + 
+  geom_point(size=0.1, alpha=0.5) +
+  stat_density_2d(linewidth=1, color="blue", alpha=0.5) +
+  theme_bw() +
+  coord_cartesian(xlim = c(-0.25,0.5), ylim = c(0,200)) + 
+  theme(legend.pos = "none")
+
+p2 <- results.df %>%
+  dplyr::filter(gene %in% xl$Gene) %>%
   ggplot(aes(x=estimate_exp, y=-log10(p.value_exp), label=gene)) + 
   geom_point() +
+  stat_density_2d(linewidth=1, color="blue", alpha=0.5) +
   theme_bw() +
-  geom_text_repel() 
+  geom_text_repel() +
+  coord_cartesian(xlim = c(-0.25,0.5), ylim = c(0,200)) + 
+  theme(legend.pos = "none")
 
+grid.arrange(p1,p2)
 
 #################
 
