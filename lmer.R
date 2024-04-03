@@ -23,6 +23,10 @@ library(openxlsx)
 library(EnsDb.Hsapiens.v86)
 library(Seurat)
 
+
+# install these
+install.packages('lmerTest')
+install.packages('msigdbr')
 library(lmerTest)
 library(msigdbr)
 
@@ -103,6 +107,12 @@ results.df <- bind_rows(results.ls) %>% as.data.frame()
 
 write.csv(results.df, file="project/diabneph/analysis/dkd/rna_aggr_prep/lmer_results.csv")
 
+
+# correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
+xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
+genes <- xl$Gene	
+results.df <- read.csv("G:/diabneph/analysis/dkd/rna_aggr_prep/lmer_results.csv")
+	
 results.df <- results.df %>%
   dplyr::mutate(label = ifelse(gene %in% xl$Gene, gene, ""))
 
