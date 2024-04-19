@@ -49,7 +49,7 @@ df <- df %>% left_join(celltype_update, by = "celltype")
 
 df$in_markers <- df$Gene %in% xl$Gene
 df <- df %>%
-  dplyr::mutate(gene_type = ifelse(Gene %in% xl$Gene[xl$color == "tnf_and_apoptosis"], "TNF and \nApoptosis", "Other"))
+  dplyr::mutate(gene_type = ifelse(Gene %in% xl$Gene[xl$color == "tnf_and_apoptosis"], "TNFR Signaling and \nApoptotic Process", "Other proteins"))
 
 df <- df %>% 
   dplyr::filter(p_val_adj < 0.05)
@@ -68,9 +68,18 @@ panelA <- toplot %>%
   dplyr::mutate(total_freq = sum(Freq)) %>%
   ggplot(aes(celltype, prop, fill=gene_type)) +
   geom_bar(stat = "identity") +
+  scale_fill_manual(values = c ("red", "blue")) + 
   theme_bw() +
-  theme(text = element_text(size=14),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(plot.title = element_text(size=20, hjust = 0),
+        axis.text = element_text(colour="black", size=12, face="bold"),
+        axis.title=element_text(size=14),
+        panel.border = element_rect(color="black",size=1),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        legend.title = element_blank(),
+        legend.position="bottom",
+        legend.justification="center",
+        legend.text=element_text(size=12)) +
+  guides(fill=guide_legend(nrow=1, ncol=2, reverse = TRUE)) +
   xlab("") +
   ylab("Proportion cell-specific genes") +
   geom_text(
@@ -78,7 +87,8 @@ panelA <- toplot %>%
     stat = 'summary', fun = sum, vjust = -1
   ) +
   labs(fill = "Gene Type") +
-  ylim(c(0,0.005))
+  ylim(c(0,0.005)) +
+  ggtitle("A)")
 ######################################################################################################
 # deg plot PT vs PT_VCAM1
 file <- "G:/diabneph/analysis/dkd/markers/deg.PT_vs_PTVCAM1.markers.xlsx"
@@ -100,7 +110,7 @@ panelB <- deg %>%
                   max.overlaps = nrow(deg),
                   point.size = NA) +
   xlab("Average log-fold change") +
-  ggtitle("A)") +
+  ggtitle("B)") +
   theme_bw() +
   ylim(c(0,150)) +
   xlim(c(-1,1)) +
@@ -188,7 +198,7 @@ panelC <- cor.df %>%
   geom_text(aes(label = star)) +
   ylim(rev(levels(cor.df$Gene))) +
   labs(fill = "Pearson r", x = "", y = "") +
-  ggtitle("B)") +
+  ggtitle("C)") +
   xlab("Apoptosis Index") +
   theme(plot.title = element_text(size=20, hjust = 0),
         axis.text.y = element_text(color=rev(con), size=10),
@@ -270,7 +280,7 @@ panelD <- cor.df %>%
   geom_text(aes(label = star)) +
   ylim(rev(panel_levels)) +
   labs(fill = "Pearson r", x = "", y = "") +
-  ggtitle("B)") +
+  ggtitle("D)") +
   xlab("Apoptosis Index") +
   theme(plot.title = element_text(size=20, hjust = 0),
         axis.text.y = element_text(color=rev(con), size=10),
@@ -286,9 +296,10 @@ pdf("G:/krolewski/revised_figure.pdf",width=8.5, height=8.5)
 margin = theme(plot.margin = unit(c(0.25,0.25,0.25,0.25,0.25), "cm"))
 pl <- list(panelA, panelB, panelC, panelD)
 grid.arrange(grobs = lapply(pl, "+", margin),
-             ncol=2,
-             layout_matrix = cbind(c(1,1,3,4), c(2,2,3,4)),
-             widths = c(2,1))
+             ncol=3,
+             layout_matrix = rbind(c(1,3,4),
+                                   c(2,3,4)),
+             widths = c(2,1,1))
 dev.off()
 
 #####################################################################################################
