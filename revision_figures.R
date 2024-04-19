@@ -63,7 +63,7 @@ toplot[is.na(toplot)] <- 0
 
 toplot$celltype <- factor(toplot$celltype, levels = new_levels)
 
-pCellSpecific <- toplot %>%
+panelA <- toplot %>%
   group_by(celltype) %>%
   dplyr::mutate(total_freq = sum(Freq)) %>%
   ggplot(aes(celltype, prop, fill=gene_type)) +
@@ -79,8 +79,7 @@ pCellSpecific <- toplot %>%
   ) +
   labs(fill = "Gene Type") +
   ylim(c(0,0.005))
-
-#####################################################################################################
+######################################################################################################
 # deg plot PT vs PT_VCAM1
 file <- "G:/diabneph/analysis/dkd/markers/deg.PT_vs_PTVCAM1.markers.xlsx"
 deg <- read.xlsx(file, rowNames = TRUE) %>%
@@ -92,10 +91,10 @@ deg <- read.xlsx(file, rowNames = TRUE) %>%
   dplyr::mutate(label = paste0(Name_2))
 
 # visualize
-pDEG <- deg %>%
+panelB <- deg %>%
   ggplot(aes(avg_log2FC, -log10(p_val_adj), label=label)) +
   geom_point(aes(color=color), position="dodge", size=4, alpha=0.5) +
-  scale_color_manual(values = c (`TNFR Signaling and\nApoptotic Processes` = "red", `Other\nproteins` = "blue")) + 
+  scale_color_manual(values = c ("red", "blue")) + 
   geom_text_repel(show.legend = FALSE,
                   force=10,
                   max.overlaps = nrow(deg),
@@ -115,6 +114,184 @@ pDEG <- deg %>%
         legend.text=element_text(size=12)) +
   guides(color=guide_legend(nrow=1, ncol=2, reverse = TRUE))
 
+######################################################################################################
+# correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
+xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
+genes <- xl$Gene
+
+# add grouping colors
+xl2 <- read.xlsx("G:/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
+  dplyr::rename(Gene = "NAME_1") %>%
+  dplyr::rename(color = Colors.in.Panel.A) %>%
+  dplyr::mutate(color = ifelse(color == "Red", "TNFR Signaling and\nApoptotic Processes", "Other\nproteins")) %>%
+  dplyr::select(Gene, Name_2, color)
+xl2$color <- as.factor(xl2$color)
+xl <- xl %>% left_join(xl2, by = "Gene")
+
+hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
+apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
+apoptosis_genes <- apoptosis$gene_symbol
+genelist <- c(apoptosis_genes, genes) %>% unique()
+
+# correlate expression of biomarkers with hallmark apoptosis genes
+library(Seurat)
+rnaAggr <- readRDS("G:/diabneph/analysis/dkd/rna_aggr_prep/step2_anno.rds")
+DefaultAssay(rnaAggr) <- "RNA"
+rnaAggr <- NormalizeData(rnaAggr)
+counts <- GetAssayData(rnaAggr, slot = "data")
+apoptosis_counts <- counts[rownames(counts) %in% apoptosis_genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
+apoptosis_totals <- colSums(apoptosis_counts) %>% as.data.frame %>% t()
+rownames(apoptosis_totals) <- "apoptosis"
+
+counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
+allcounts <- rbind(counts, apoptosis_totals)
+cor <- rcorr(t(as.matrix(allcounts)))
+
+# pearson correlation coefficients
+cor.df <- cor$r %>% as.data.frame()
+cor.df$gene <- rownames(cor.df) 
+
+# retrieve pval for correlation between gene and apoptosis counts
+cor.df$pval <- cor$P[colnames(cor$P) == "apoptosis"]
+cor.df <- cor.df[,c("apoptosis","gene","pval")]
+
+# join with group labels
+cor.df <- cor.df %>% 
+  dplyr::filter(gene %in% genes)  %>%
+  dplyr::rename(Gene = gene) %>%
+  left_join(xl, by = "Gene") 
+
+# arrange by pval
+cor.df <- cor.df %>%
+  dplyr::arrange(desc(apoptosis)) %>%
+  dplyr::mutate(star = ifelse(pval < 0.05, "*", "")) %>%
+  dplyr::mutate(Gene = Name_2)
+
+levels(cor.df$Gene) <- unique(cor.df$Gene)
+cor.df$color <- as.factor(cor.df$color)
+
+# Conditional statement to be used in plot
+con <- ifelse(cor.df$color == "TNFR Signaling and\nApoptotic Processes", 'red', 'blue')
+
+# prepare for plots
+cor.df$variable <- ""
+panelC <- cor.df %>% 
+  ggplot(aes(variable, Gene, fill = apoptosis, label = star)) +
+  geom_tile() + 
+  scale_fill_gradient2(low = "blue",
+                       mid = "white",
+                       high = "red",
+                       midpoint = 0,
+                       guide = "colorbar",
+                       limits = c(-0.1, 1)) +
+  theme_bw() +
+  geom_text(aes(label = star)) +
+  ylim(rev(levels(cor.df$Gene))) +
+  labs(fill = "Pearson r", x = "", y = "") +
+  ggtitle("B)") +
+  xlab("Apoptosis Index") +
+  theme(plot.title = element_text(size=20, hjust = 0),
+        axis.text.y = element_text(color=rev(con), size=10),
+        legend.text=element_text(size=12, face="bold"),
+        legend.title=element_text(size=12),
+        axis.title=element_text(size=14),
+        panel.border = element_rect(color="black",size=1)) 
+panel_levels = levels(cor.df$Gene)
+
+#################################################################################################
+# correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
+xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
+genes <- xl$Gene
+
+# add grouping colors
+xl2 <- read.xlsx("G:/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
+  dplyr::rename(Gene = "NAME_1") %>%
+  dplyr::rename(color = Colors.in.Panel.A) %>%
+  dplyr::mutate(color = ifelse(color == "Red", "TNFR Signaling and\nApoptotic Processes", "Other\nproteins")) %>%
+  dplyr::select(Gene, Name_2, color)
+xl2$color <- as.factor(xl2$color)
+xl <- xl %>% left_join(xl2, by = "Gene")
+
+hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
+apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
+apoptosis_genes <- apoptosis$gene_symbol
+genelist <- c(apoptosis_genes, genes) %>% unique()
+
+# correlate expression of biomarkers with hallmark apoptosis genes
+rnaAggr <- readRDS("G:/diabneph/analysis/dkd/rna_aggr_prep/step2_magic.rds")
+DefaultAssay(rnaAggr) <- "MAGIC_RNA"
+counts <- GetAssayData(rnaAggr, slot = "data", assay = "MAGIC_RNA")
+apoptosis_counts <- counts[rownames(counts) %in% apoptosis_genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
+apoptosis_totals <- colSums(apoptosis_counts) %>% as.data.frame %>% t()
+rownames(apoptosis_totals) <- "apoptosis"
+
+counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
+allcounts <- rbind(counts, apoptosis_totals)
+cor <- rcorr(t(as.matrix(allcounts)))
+
+# pearson correlation coefficients
+cor.df <- cor$r %>% as.data.frame()
+cor.df$gene <- rownames(cor.df) 
+
+# retrieve pval for correlation between gene and apoptosis counts
+cor.df$pval <- cor$P[colnames(cor$P) == "apoptosis"]
+cor.df <- cor.df[,c("apoptosis","gene","pval")]
+
+# join with group labels
+cor.df <- cor.df %>% 
+  dplyr::filter(gene %in% genes)  %>%
+  dplyr::rename(Gene = gene) %>%
+  left_join(xl, by = "Gene") 
+
+# arrange by pval
+cor.df <- cor.df %>%
+  dplyr::arrange(desc(apoptosis)) %>%
+  dplyr::mutate(star = ifelse(pval < 0.05, "*", "")) %>%
+  dplyr::mutate(Gene = Name_2)
+
+levels(cor.df$Gene) <- unique(cor.df$Gene)
+cor.df$color <- as.factor(cor.df$color)
+
+# Conditional statement to be used in plot
+con <- ifelse(cor.df$color == "TNFR Signaling and\nApoptotic Processes", 'red', 'blue')
+
+# prepare for plots
+cor.df$variable <- ""
+panelD <- cor.df %>% 
+  ggplot(aes(variable, Gene, fill = apoptosis, label = star)) +
+  geom_tile() + 
+  scale_fill_gradient2(low = "blue",
+                       mid = "white",
+                       high = "red",
+                       midpoint = 0,
+                       guide = "colorbar",
+                       limits = c(-0.1, 1)) +
+  theme_bw() +
+  geom_text(aes(label = star)) +
+  ylim(rev(panel_levels)) +
+  labs(fill = "Pearson r", x = "", y = "") +
+  ggtitle("B)") +
+  xlab("Apoptosis Index") +
+  theme(plot.title = element_text(size=20, hjust = 0),
+        axis.text.y = element_text(color=rev(con), size=10),
+        legend.text=element_text(size=12, face="bold"),
+        legend.title=element_text(size=12),
+        axis.title=element_text(size=14),
+        panel.border = element_rect(color="black",size=1)) 
+
+####################################################
+
+library(gridExtra)
+pdf("G:/krolewski/revised_figure.pdf",width=8.5, height=8.5)
+margin = theme(plot.margin = unit(c(0.25,0.25,0.25,0.25,0.25), "cm"))
+pl <- list(panelA, panelB, panelC, panelD)
+grid.arrange(grobs = lapply(pl, "+", margin),
+             ncol=2,
+             layout_matrix = cbind(c(1,1,3,4), c(2,2,3,4)),
+             widths = c(2,1))
+dev.off()
+
+#####################################################################################################
 # dar PT vs PT_VCAM1 volcano
 file <- "G:/diabneph/analysis/dkd/markers/dar.macs2.PCT_vs_PTVCAM1.markers.xlsx"
 dar <- read.xlsx(file, rowNames = TRUE)  
@@ -188,7 +365,7 @@ dar <- dar %>%
   dplyr::mutate(label = paste0(Name_2))
 
 # visualize
-pDAR <- dar %>%
+supplemental_dar <- dar %>%
   na.omit() %>%
   dplyr::mutate(logpval = -log10(p_val_adj)) %>%
   dplyr::mutate(logpval = ifelse(logpval > 150, 150, logpval)) %>%
@@ -212,179 +389,4 @@ pDAR <- dar %>%
         legend.justification="center",
         legend.text=element_text(size=12)) +
   guides(color=guide_legend(nrow=1, reverse = TRUE))
-
-######################################################################################################
-# correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
-xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
-genes <- xl$Gene
-
-# add grouping colors
-xl2 <- read.xlsx("G:/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
-  dplyr::rename(Gene = "NAME_1") %>%
-  dplyr::rename(color = Colors.in.Panel.A) %>%
-  dplyr::mutate(color = ifelse(color == "Red", "TNFR Signaling and\nApoptotic Processes", "Other\nproteins")) %>%
-  dplyr::select(Gene, Name_2, color)
-xl2$color <- as.factor(xl2$color)
-xl <- xl %>% left_join(xl2, by = "Gene")
-
-hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
-apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
-apoptosis_genes <- apoptosis$gene_symbol
-genelist <- c(apoptosis_genes, genes) %>% unique()
-
-# correlate expression of biomarkers with hallmark apoptosis genes
-library(Seurat)
-rnaAggr <- readRDS("G:/diabneph/analysis/dkd/rna_aggr_prep/step2_anno.rds")
-DefaultAssay(rnaAggr) <- "RNA"
-rnaAggr <- NormalizeData(rnaAggr)
-counts <- GetAssayData(rnaAggr, slot = "data")
-apoptosis_counts <- counts[rownames(counts) %in% apoptosis_genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
-apoptosis_totals <- colSums(apoptosis_counts) %>% as.data.frame %>% t()
-rownames(apoptosis_totals) <- "apoptosis"
-
-counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
-allcounts <- rbind(counts, apoptosis_totals)
-cor <- rcorr(t(as.matrix(allcounts)))
-
-# pearson correlation coefficients
-cor.df <- cor$r %>% as.data.frame()
-cor.df$gene <- rownames(cor.df) 
-
-# retrieve pval for correlation between gene and apoptosis counts
-cor.df$pval <- cor$P[colnames(cor$P) == "apoptosis"]
-cor.df <- cor.df[,c("apoptosis","gene","pval")]
-
-# join with group labels
-cor.df <- cor.df %>% 
-  dplyr::filter(gene %in% genes)  %>%
-  dplyr::rename(Gene = gene) %>%
-  left_join(xl, by = "Gene") 
-
-# arrange by pval
-cor.df <- cor.df %>%
-  dplyr::arrange(desc(apoptosis)) %>%
-  dplyr::mutate(star = ifelse(pval < 0.05, "*", "")) %>%
-  dplyr::mutate(Gene = Name_2)
-
-levels(cor.df$Gene) <- unique(cor.df$Gene)
-cor.df$color <- as.factor(cor.df$color)
-
-# Conditional statement to be used in plot
-con <- ifelse(cor.df$color == "TNFR Signaling and\nApoptotic Processes", 'red', 'blue')
-
-# prepare for plots
-cor.df$variable <- ""
-pCOR <- cor.df %>% 
-  ggplot(aes(variable, Gene, fill = apoptosis, label = star)) +
-  geom_tile() + 
-  scale_fill_gradient2(low = "blue",
-                       mid = "white",
-                       high = "red",
-                       midpoint = 0,
-                       guide = "colorbar") +
-  theme_bw() +
-  geom_text(aes(label = star)) +
-  ylim(rev(levels(cor.df$Gene))) +
-  labs(fill = "Pearson r", x = "", y = "") +
-  ggtitle("B)") +
-  xlab("Apoptosis Index") +
-  theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text.y = element_text(color=rev(con), size=10),
-        legend.text=element_text(size=12, face="bold"),
-        legend.title=element_text(size=12),
-        axis.title=element_text(size=14),
-        panel.border = element_rect(color="black",size=1))
-panel_levels = levels(cor.df$Gene)
-
-#################################################################################################
-# correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
-xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
-genes <- xl$Gene
-
-# add grouping colors
-xl2 <- read.xlsx("G:/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
-  dplyr::rename(Gene = "NAME_1") %>%
-  dplyr::rename(color = Colors.in.Panel.A) %>%
-  dplyr::mutate(color = ifelse(color == "Red", "TNFR Signaling and\nApoptotic Processes", "Other\nproteins")) %>%
-  dplyr::select(Gene, Name_2, color)
-xl2$color <- as.factor(xl2$color)
-xl <- xl %>% left_join(xl2, by = "Gene")
-
-hallmark <- msigdbr(species = "Homo sapiens", category = "H") 
-apoptosis <- hallmark[grepl("APOPTOSIS",hallmark$gs_name),]
-apoptosis_genes <- apoptosis$gene_symbol
-genelist <- c(apoptosis_genes, genes) %>% unique()
-
-# correlate expression of biomarkers with hallmark apoptosis genes
-rnaAggr <- readRDS("G:/diabneph/analysis/dkd/rna_aggr_prep/step2_magic.rds")
-DefaultAssay(rnaAggr) <- "MAGIC_RNA"
-counts <- GetAssayData(rnaAggr, slot = "data", assay = "MAGIC_RNA")
-apoptosis_counts <- counts[rownames(counts) %in% apoptosis_genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
-apoptosis_totals <- colSums(apoptosis_counts) %>% as.data.frame %>% t()
-rownames(apoptosis_totals) <- "apoptosis"
-
-counts <- counts[rownames(counts) %in% genes, rnaAggr@meta.data$celltype %in% c("PTVCAM1")]
-allcounts <- rbind(counts, apoptosis_totals)
-cor <- rcorr(t(as.matrix(allcounts)))
-
-# pearson correlation coefficients
-cor.df <- cor$r %>% as.data.frame()
-cor.df$gene <- rownames(cor.df) 
-
-# retrieve pval for correlation between gene and apoptosis counts
-cor.df$pval <- cor$P[colnames(cor$P) == "apoptosis"]
-cor.df <- cor.df[,c("apoptosis","gene","pval")]
-
-# join with group labels
-cor.df <- cor.df %>% 
-  dplyr::filter(gene %in% genes)  %>%
-  dplyr::rename(Gene = gene) %>%
-  left_join(xl, by = "Gene") 
-
-# arrange by pval
-cor.df <- cor.df %>%
-  dplyr::arrange(desc(apoptosis)) %>%
-  dplyr::mutate(star = ifelse(pval < 0.05, "*", "")) %>%
-  dplyr::mutate(Gene = Name_2)
-
-levels(cor.df$Gene) <- unique(cor.df$Gene)
-cor.df$color <- as.factor(cor.df$color)
-
-# Conditional statement to be used in plot
-con <- ifelse(cor.df$color == "TNFR Signaling and\nApoptotic Processes", 'red', 'blue')
-
-# prepare for plots
-cor.df$variable <- ""
-pIMPUTE <- cor.df %>% 
-  ggplot(aes(variable, Gene, fill = apoptosis, label = star)) +
-  geom_tile() + 
-  scale_fill_gradient2(low = "blue",
-                       mid = "white",
-                       high = "red",
-                       midpoint = 0,
-                       guide = "colorbar") +
-  theme_bw() +
-  geom_text(aes(label = star)) +
-  ylim(rev(panel_levels)) +
-  labs(fill = "Pearson r", x = "", y = "") +
-  ggtitle("B)") +
-  xlab("Apoptosis Index") +
-  theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text.y = element_text(color=rev(con), size=10),
-        legend.text=element_text(size=12, face="bold"),
-        legend.title=element_text(size=12),
-        axis.title=element_text(size=14),
-        panel.border = element_rect(color="black",size=1))
-
-####################################################
-
-library(gridExtra)
-pdf("G:/krolewski/figure.pdf",width=8.5, height=8.5)
-margin = theme(plot.margin = unit(c(0.25,0.25,0.25,0.25,0.25), "cm"))
-pl <- list(p1,p3,p4)
-grid.arrange(grobs = lapply(pl, "+", margin),
-             ncol=2,
-             layout_matrix = cbind(c(1,3), c(2,2)),
-             widths = c(2,1))
-dev.off()
 
