@@ -200,9 +200,9 @@ panelC <- cor.df %>%
   theme_bw() +
   geom_text(aes(label = star)) +
   ylim(rev(levels(cor.df$Gene))) +
-  labs(fill = "Pearson r", x = "", y = "") +
+  labs(fill = "", x = "", y = "") +
   ggtitle("C)") +
-  xlab("Apoptosis Index") +
+  xlab("Apoptosis\nIndex") +
   theme(plot.title = element_text(size=20, hjust = 0),
         axis.text.y = element_text(color=rev(con), size=10),
         legend.text=element_text(size=12, face="bold"),
@@ -266,9 +266,6 @@ cor.df <- cor.df %>%
 levels(cor.df$Gene) <- unique(cor.df$Gene)
 cor.df$color <- as.factor(cor.df$color)
 
-# Conditional statement to be used in plot
-con <- ifelse(cor.df$color == "TNFR Signaling and\nApoptotic Processes", 'red', 'blue')
-
 # prepare for plots
 cor.df$variable <- ""
 panelD <- cor.df %>% 
@@ -285,22 +282,21 @@ panelD <- cor.df %>%
   theme_bw() +
   geom_text(aes(label = star)) +
   ylim(rev(panel_levels)) +
-  labs(fill = "Pearson r", x = "", y = "") +
+  labs(fill = "", x = "", y = "") +
   ggtitle("D)") +
-  xlab(" Imputed Apoptosis Index") +
+  xlab("Imputed\nIndex") +
   theme(plot.title = element_text(size=20, hjust = 0),
         axis.text.y = element_text(color=rev(con), size=10),
         legend.text=element_text(size=12, face="bold"),
         legend.title=element_text(size=12),
         axis.title=element_text(size=14),
         panel.border = element_rect(color="black",size=1),
-        legend.pos = "bottom") + 
-theme(legend.position="bottom")
+        legend.pos = "bottom") 
 
 ####################################################
 
 library(gridExtra)
-pdf("G:/krolewski/revised_figure.pdf",width=8.5, height=8.5)
+pdf("G:/krolewski/revised_figure.pdf",width=10, height=8.5)
 margin = theme(plot.margin = unit(c(0.25,0.25,0.25,0.25,0.25), "cm"))
 pl <- list(panelA, panelB, panelC, panelD)
 grid.arrange(grobs = lapply(pl, "+", margin),
