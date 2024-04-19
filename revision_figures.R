@@ -71,7 +71,7 @@ panelA <- toplot %>%
   scale_fill_manual(values = c ("red", "blue")) + 
   theme_bw() +
   theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text = element_text(colour="black", size=12, face="bold"),
+        axis.text = element_text(colour="black", size=12),
         axis.title=element_text(size=14),
         panel.border = element_rect(color="black",size=1),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
@@ -98,7 +98,8 @@ deg <- read.xlsx(file, rowNames = TRUE) %>%
   dplyr::filter(Gene %in% genes) %>%
   dplyr::filter(p_val_adj < 0.05) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = paste0(Name_2))
+  dplyr::mutate(label = paste0(Name_2)) %>%
+  dplyr::mutate(color = ifelse(color %in% "tnf_and_apoptosis", "TNFR Signaling and \nApoptotic Process", "Other proteins"))
 
 # visualize
 panelB <- deg %>%
@@ -193,7 +194,9 @@ panelC <- cor.df %>%
                        high = "red",
                        midpoint = 0,
                        guide = "colorbar",
-                       limits = c(-0.1, 1)) +
+                       limits = c(-0.1, 1),
+                       breaks = c(-0.1, 1),
+                       labels=c("-0.1","1")) +
   theme_bw() +
   geom_text(aes(label = star)) +
   ylim(rev(levels(cor.df$Gene))) +
@@ -205,7 +208,8 @@ panelC <- cor.df %>%
         legend.text=element_text(size=12, face="bold"),
         legend.title=element_text(size=12),
         axis.title=element_text(size=14),
-        panel.border = element_rect(color="black",size=1)) 
+        panel.border = element_rect(color="black",size=1),
+        legend.pos = "bottom") 
 panel_levels = levels(cor.df$Gene)
 
 #################################################################################################
@@ -275,19 +279,23 @@ panelD <- cor.df %>%
                        high = "red",
                        midpoint = 0,
                        guide = "colorbar",
-                       limits = c(-0.1, 1)) +
+                       limits = c(-0.1, 1),
+                       breaks = c(-0.1, 1),
+                       labels=c("-0.1","1")) +
   theme_bw() +
   geom_text(aes(label = star)) +
   ylim(rev(panel_levels)) +
   labs(fill = "Pearson r", x = "", y = "") +
   ggtitle("D)") +
-  xlab("Apoptosis Index") +
+  xlab(" Imputed Apoptosis Index") +
   theme(plot.title = element_text(size=20, hjust = 0),
         axis.text.y = element_text(color=rev(con), size=10),
         legend.text=element_text(size=12, face="bold"),
         legend.title=element_text(size=12),
         axis.title=element_text(size=14),
-        panel.border = element_rect(color="black",size=1)) 
+        panel.border = element_rect(color="black",size=1),
+        legend.pos = "bottom") + 
+theme(legend.position="bottom")
 
 ####################################################
 
