@@ -377,7 +377,7 @@ dar <- dar %>%
   left_join(xl, by = "Gene") %>%
   dplyr::filter(p_val_adj < 0.05) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = paste0(Name_2))
+  dplyr::mutate(label = paste0(gene))
 
 # visualize
 supplemental_dar <- dar %>%
