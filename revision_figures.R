@@ -404,4 +404,58 @@ supplemental_dar <- dar %>%
         legend.justification="center",
         legend.text=element_text(size=12)) +
   guides(color=guide_legend(nrow=1, reverse = TRUE))
+##############################################################
+# lmer supplemental figures
+# correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
+xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
+genes <- xl$Gene	
+results.df <- read.csv("G:/diabneph/analysis/dkd/rna_aggr_prep/lmer_results.csv")
+
+results.df <- results.df %>%
+  dplyr::mutate(label = ifelse(gene %in% xl$Gene, gene, ""))
+
+density_sel <- results.df %>%
+  dplyr::filter(gene %in% xl$Gene) %>%
+  ggplot(aes(x=estimate_exp, y=-log10(p.value_exp))) + 
+  stat_density_2d(n=10000)
+
+p_sel <- ggplot_build(density_sel)
+p_sel <- p_sel$data[[1]]
+
+density <- results.df %>%
+  ggplot(aes(x=estimate_exp, y=-log10(p.value_exp))) + 
+  stat_density_2d(n=1000)
+
+p <- ggplot_build(density)
+p <- p$data[[1]]
+p$gene <- ""
+
+
+p1 <- results.df %>%
+  ggplot(aes(x=estimate_exp, y=-log10(p.value_exp))) + 
+  geom_point(size=0.1, alpha=0.5) +
+  stat_density_2d(linewidth=1, color="red", alpha=0.5) +
+  geom_point(data = p_sel, aes(x, y), color = "blue", size = 0.75) +
+  theme_bw() +
+  coord_cartesian(xlim = c(-0.25,0.5), ylim = c(0,200)) + 
+  theme(legend.pos = "none") +
+  xlab("Beta coefficient apoptosis genes") +
+  ylab("-log10(pval)") +
+  ggtitle("A)")
+
+p2 <- results.df %>%
+  dplyr::filter(gene %in% xl$Gene) %>%
+  ggplot(aes(x=estimate_exp, y=-log10(p.value_exp), label=gene)) + 
+  geom_point() +
+  stat_density_2d(linewidth=1, color="blue", alpha=0.5) +
+  geom_point(data = p, aes(x, y), color = "red", size = 0.75) +
+  theme_bw() +
+  geom_text_repel() +
+  coord_cartesian(xlim = c(-0.25,0.5), ylim = c(0,200)) + 
+  theme(legend.pos = "none") +
+  xlab("Beta coefficient apoptosis genes")+
+  ylab("-log10(pval)")+
+  ggtitle("B)")
+
+grid.arrange(p1,p2)
 
