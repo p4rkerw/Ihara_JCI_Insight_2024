@@ -417,7 +417,7 @@ results.df <- results.df %>%
 density_sel <- results.df %>%
   dplyr::filter(gene %in% xl$Gene) %>%
   ggplot(aes(x=estimate_exp, y=-log10(p.value_exp))) + 
-  stat_density_2d(n=10000)
+  stat_density_2d(n=1000)
 
 p_sel <- ggplot_build(density_sel)
 p_sel <- p_sel$data[[1]]
