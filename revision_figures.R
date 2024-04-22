@@ -308,8 +308,16 @@ dev.off()
 
 #####################################################################################################
 # dar PT vs PT_VCAM1 volcano
+xl2 <- read.xlsx("G:/krolewski/Proteins_list_46_for_Parker.xlsx") %>%
+  dplyr::rename(gene = "NAME_1") %>%
+  dplyr::rename(color = Colors.in.Panel.A) %>%
+  dplyr::mutate(color = ifelse(color == "Red", "TNFR Signaling and\nApoptotic Processes", "Other\nproteins")) %>%
+  dplyr::select(gene, Name_2, color)
+xl2$color <- as.factor(xl2$color)
+
 file <- "G:/diabneph/analysis/dkd/markers/dar.macs2.PCT_vs_PTVCAM1.markers.xlsx"
-dar <- read.xlsx(file, rowNames = TRUE)  
+dar <- read.xlsx(file, rowNames = TRUE)
+dar <- dar %>% left_join(xl2, by = "gene")
 
 # intersect 
 dar.genes <- dar[dar$gene %in% genes,]
@@ -361,6 +369,9 @@ dar <- as.data.frame(dar.gr) %>%
   dplyr::mutate(peak = paste0(seqnames,"-",start,"-",end)) %>%
   left_join(dar.anno, by = "peak")
 
+dar <- dar %>%
+  left_join(xl2, by = "gene")
+
 # recode the annot.type to shorten descriptions
 dar <- dar %>%
   dplyr::mutate(annot.type = recode(annot.type,
@@ -377,7 +388,7 @@ dar <- dar %>%
   left_join(xl, by = "Gene") %>%
   dplyr::filter(p_val_adj < 0.05) %>%
   dplyr::mutate(fold_change = 2^avg_log2FC) %>%
-  dplyr::mutate(label = paste0(gene))
+  dplyr::mutate(label = paste0(Gene))
 
 # visualize
 supplemental_dar <- dar %>%
@@ -393,7 +404,7 @@ supplemental_dar <- dar %>%
   xlim(c(-0.15,0.25)) +
   xlab("Average log-fold change") +
   ylab("-log10(p_val_adj)") +
-  ggtitle("C)") +
+  ggtitle("A)") +
   theme_bw() +
   theme(legend.title = element_blank(),
         plot.title = element_text(size=20, hjust = 0),
