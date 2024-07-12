@@ -19,9 +19,9 @@ library(EnsDb.Hsapiens.v86)
 # subset for apoptosis genes
 # correlation between hallmark apoptosis genes and biomarkers in PT_VCAM1
 new_celltypes <- c("PT", "PT_VCAM1", "PEC", "iTAL", "TAL1", "TAL2", "DCT1", "DCT2", "PC", "ICA", "ICB", "PODO",
-                "ENDO","MES","FIB","LEUK")
+                   "ENDO","MES","FIB","LEUK")
 new_levels <- c("PT", "PT_VCAM1", "PEC", "TAL1", "TAL2", "iTAL", "DCT1", "DCT2", "PC", "ICA", "ICB", "PODO",
-                     "ENDO","MES","FIB","LEUK")
+                "ENDO","MES","FIB","LEUK")
 
 xl <- read.xlsx("G:/krolewski/Joslin_New_46_prots.xlsx", sheet = "New_46_prots")
 genes <- xl$Gene
@@ -70,15 +70,16 @@ panelA <- toplot %>%
   geom_bar(stat = "identity") +
   scale_fill_manual(values = c ("red", "blue")) + 
   theme_bw() +
-  theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text = element_text(colour="black", size=12),
-        axis.title=element_text(size=14),
-        panel.border = element_rect(color="black",size=1),
+  theme(text = element_text(size=8),
+        plot.title = element_text(size=8, hjust = 0),
+        axis.text = element_text(colour="black", size=8),
+        axis.title=element_text(size=8),
+        panel.border = element_rect(color="black",size=0.5),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
         legend.title = element_blank(),
         legend.position="bottom",
         legend.justification="center",
-        legend.text=element_text(size=12)) +
+        legend.text=element_text(size=8)) +
   guides(fill=guide_legend(nrow=1, ncol=2, reverse = TRUE)) +
   xlab("") +
   ylab("Proportion cell-specific genes") +
@@ -109,20 +110,22 @@ panelB <- deg %>%
   geom_text_repel(show.legend = FALSE,
                   force=10,
                   max.overlaps = nrow(deg),
-                  point.size = NA) +
+                  point.size = NA,
+                  size=3) +
   xlab("Average log-fold change") +
   ggtitle("B)") +
   theme_bw() +
   ylim(c(0,150)) +
   xlim(c(-1,1)) +
-  theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text = element_text(colour="black", size=12, face="bold"),
-        axis.title=element_text(size=14),
-        panel.border = element_rect(color="black",size=1),
+  theme(text = element_text(size=8),
+        plot.title = element_text(size=8, hjust = 0),
+        axis.text = element_text(colour="black", size=8),
+        axis.title=element_text(size=8),
+        panel.border = element_rect(color="black",size=0.5),
         legend.title = element_blank(),
         legend.position="bottom",
         legend.justification="center",
-        legend.text=element_text(size=12)) +
+        legend.text=element_text(size=8)) +
   guides(color=guide_legend(nrow=1, ncol=2, reverse = TRUE))
 
 ######################################################################################################
@@ -203,12 +206,13 @@ panelC <- cor.df %>%
   labs(fill = "", x = "", y = "") +
   ggtitle("C)") +
   xlab("Apoptosis\nIndex") +
-  theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text.y = element_text(color=rev(con), size=10),
-        legend.text=element_text(size=12, face="bold"),
-        legend.title=element_text(size=12),
-        axis.title=element_text(size=14),
-        panel.border = element_rect(color="black",size=1),
+  theme(text = element_text(size=8),
+        plot.title = element_text(size=8, hjust = 0),
+        axis.text.y = element_text(color=rev(con), size=8),
+        legend.text=element_text(size=8),
+        legend.title=element_text(size=8),
+        axis.title=element_text(size=8),
+        panel.border = element_rect(color="black",size=0.5),
         legend.pos = "bottom") 
 panel_levels = levels(cor.df$Gene)
 
@@ -285,18 +289,18 @@ panelD <- cor.df %>%
   labs(fill = "", x = "", y = "") +
   ggtitle("D)") +
   xlab("Imputed\nIndex") +
-  theme(plot.title = element_text(size=20, hjust = 0),
-        axis.text.y = element_text(color=rev(con), size=10),
-        legend.text=element_text(size=12, face="bold"),
-        legend.title=element_text(size=12),
-        axis.title=element_text(size=14),
-        panel.border = element_rect(color="black",size=1),
+  theme(plot.title = element_text(size=8, hjust = 0),
+        axis.text.y = element_text(color=rev(con), size=8),
+        legend.text=element_text(size=8),
+        legend.title=element_text(size=8),
+        axis.title=element_text(size=8),
+        panel.border = element_rect(color="black",size=0.5),
         legend.pos = "bottom") 
 
 ####################################################
 
 library(gridExtra)
-pdf("G:/krolewski/revised_figure.pdf",width=10, height=8.5)
+pdf("G:/krolewski/revised_figure.pdf",width=6.5, height=8.5)
 margin = theme(plot.margin = unit(c(0.25,0.25,0.25,0.25,0.25), "cm"))
 pl <- list(panelA, panelB, panelC, panelD)
 grid.arrange(grobs = lapply(pl, "+", margin),
@@ -407,13 +411,13 @@ supplemental_dar <- dar %>%
   ggtitle("A)") +
   theme_bw() +
   theme(legend.title = element_blank(),
-        plot.title = element_text(size=20, hjust = 0),
-        axis.text = element_text(colour="black", size=12, face="bold"),
-        axis.title=element_text(size=14),
+        plot.title = element_text(size=8, hjust = 0),
+        axis.text = element_text(colour="black", size=8),
+        axis.title=element_text(size=8),
         panel.border = element_rect(color="black",size=1),
         legend.position="bottom",
         legend.justification="center",
-        legend.text=element_text(size=12)) +
+        legend.text=element_text(size=8)) +
   guides(color=guide_legend(nrow=1, reverse = TRUE))
 ##############################################################
 # lmer supplemental figures
@@ -469,4 +473,3 @@ p2 <- results.df %>%
   ggtitle("B)")
 
 grid.arrange(p1,p2)
-
