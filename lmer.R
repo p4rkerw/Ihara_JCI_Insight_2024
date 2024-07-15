@@ -1,13 +1,13 @@
 #!/usr/bin/env Rscript
 # to run locally:
-SCRATCH1=/mnt/g/scratch
-docker run -it --rm \
---workdir $HOME \
--v /mnt/g:$HOME/project \
--v $HOME:$HOME \
--v $SCRATCH1:$SCRATCH1 \
--e SCRATCH1="/mnt/g/scratch" \
-p4rkerw/allele_mod:latest R
+# SCRATCH1=/mnt/g/scratch
+# docker run -it --rm \
+# --workdir $HOME \
+# -v /mnt/g:$HOME/project \
+# -v $HOME:$HOME \
+# -v $SCRATCH1:$SCRATCH1 \
+# -e SCRATCH1="/mnt/g/scratch" \
+# p4rkerw/allele_mod:latest R
 
 library(data.table)
 library(dplyr)
